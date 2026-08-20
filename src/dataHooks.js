@@ -113,7 +113,7 @@ export function useParentChildren(parentId) {
 
 export function useProfilesByRole(role) {
   return useQuery(
-    () => supabase.from("profiles").select("id, full_name").eq("role", role).order("full_name"),
+    () => supabase.from("profiles").select("id, full_name, reg_number").eq("role", role).order("full_name"),
     [role]
   );
 }
@@ -318,6 +318,20 @@ export async function saveStudentDetails(studentId, fields) {
   return supabase
     .from("student_details")
     .upsert({ student_id: studentId, ...fields, updated_at: new Date().toISOString() }, { onConflict: "student_id" });
+}
+
+// ---- Editing or removing a student's own account/record (admin only) ----
+
+export async function updateRegNumber(studentId, newRegNumber) {
+  return supabase.from("profiles").update({ reg_number: newRegNumber.trim() }).eq("id", studentId);
+}
+
+export async function deleteStudentRecord(studentId) {
+  // Cascades to student_details, grades, attendance, fee_bills, enrollments,
+  // and parent_links automatically, since those all reference this row with
+  // ON DELETE CASCADE. Their login itself stays in Supabase's Authentication
+  // system until removed there separately.
+  return supabase.from("profiles").delete().eq("id", studentId);
 }
 
 export function useStudentsByClass(className) {

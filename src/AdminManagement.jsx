@@ -34,6 +34,8 @@ import {
   useStudentFeeSummary,
   useStudentDetails,
   saveStudentDetails,
+  updateRegNumber,
+  deleteStudentRecord,
 } from "./dataHooks";
 
 function Panel({ title, icon: Icon, children }) {
@@ -1154,6 +1156,16 @@ function PersonalDetailsPanel({ initialStudentId }) {
   const [busy, setBusy] = useState(false);
   const details = useStudentDetails(studentId || null);
 
+  const [regNumber, setRegNumber] = useState("");
+  const [regStatus, setRegStatus] = useState(null);
+  const [regBusy, setRegBusy] = useState(false);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteStatus, setDeleteStatus] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const selectedStudent = (students.data ?? []).find((s) => s.id === studentId);
+
   useEffect(() => {
     if (initialStudentId) setStudentId(initialStudentId);
   }, [initialStudentId]);
@@ -1168,8 +1180,16 @@ function PersonalDetailsPanel({ initialStudentId }) {
     } else {
       setForm(emptyDetails());
     }
+    setConfirmDelete(false);
+    setDeleteStatus(null);
+    setRegStatus(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId, details.data]);
+
+  useEffect(() => {
+    setRegNumber(selectedStudent?.reg_number ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStudent?.reg_number, studentId]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -1178,6 +1198,30 @@ function PersonalDetailsPanel({ initialStudentId }) {
     setBusy(false);
     setStatus(error ? { ok: false, message: error.message } : { ok: true, message: "Saved." });
     if (!error) details.refetch();
+  };
+
+  const saveRegNumber = async () => {
+    setRegBusy(true);
+    const { error } = await updateRegNumber(studentId, regNumber);
+    setRegBusy(false);
+    setRegStatus(
+      error
+        ? { ok: false, message: error.message }
+        : { ok: true, message: "Saved. Note: this only changes the number shown — it doesn't change what they type to sign in." }
+    );
+    if (!error) students.refetch();
+  };
+
+  const doDelete = async () => {
+    setDeleteBusy(true);
+    const { error } = await deleteStudentRecord(studentId);
+    setDeleteBusy(false);
+    if (error) {
+      setDeleteStatus({ ok: false, message: error.message });
+      return;
+    }
+    setStudentId("");
+    students.refetch();
   };
 
   return (
@@ -1192,27 +1236,74 @@ function PersonalDetailsPanel({ initialStudentId }) {
       </Field>
 
       {studentId && (
-        <form onSubmit={submit} className="mt-3 pt-3 border-t border-[#EDEEF5] space-y-3">
-          {details.loading ? (
-            <p className="text-sm text-[#8C7B4E]">Loading existing details…</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {DETAIL_FIELDS.map((f) => (
-                <Field key={f.key} label={f.label}>
-                  <DetailFieldInput
-                    field={f}
-                    value={form[f.key]}
-                    onChange={(v) => setForm((prev) => ({ ...prev, [f.key]: v }))}
-                  />
-                </Field>
-              ))}
+        <>
+          <div className="mt-3 pt-3 border-t border-[#EDEEF5] flex items-end gap-2">
+            <div className="flex-1">
+              <Field label="Registration Number">
+                <input value={regNumber} onChange={(e) => setRegNumber(e.target.value)} className={inputClass} />
+              </Field>
             </div>
-          )}
-          <StatusLine status={status} />
-          <button disabled={busy} className="text-sm bg-[#0B6B2B] text-[#FFFFFF] px-4 py-1.5 rounded-sm hover:bg-[#084F20] disabled:opacity-60">
-            {busy ? "Saving…" : "Save details"}
-          </button>
-        </form>
+            <button
+              disabled={regBusy}
+              onClick={saveRegNumber}
+              className="text-xs px-3 py-1.5 rounded-sm border border-[#0B6B2B] text-[#0B6B2B] hover:bg-[#F5FAF6] disabled:opacity-60 shrink-0"
+            >
+              {regBusy ? "Saving…" : "Save"}
+            </button>
+          </div>
+          <StatusLine status={regStatus} />
+
+          <form onSubmit={submit} className="mt-3 pt-3 border-t border-[#EDEEF5] space-y-3">
+            {details.loading ? (
+              <p className="text-sm text-[#8C7B4E]">Loading existing details…</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {DETAIL_FIELDS.map((f) => (
+                  <Field key={f.key} label={f.label}>
+                    <DetailFieldInput
+                      field={f}
+                      value={form[f.key]}
+                      onChange={(v) => setForm((prev) => ({ ...prev, [f.key]: v }))}
+                    />
+                  </Field>
+                ))}
+              </div>
+            )}
+            <StatusLine status={status} />
+            <button disabled={busy} className="text-sm bg-[#0B6B2B] text-[#FFFFFF] px-4 py-1.5 rounded-sm hover:bg-[#084F20] disabled:opacity-60">
+              {busy ? "Saving…" : "Save details"}
+            </button>
+          </form>
+
+          <div className="mt-4 pt-3 border-t border-[#EDEEF5]">
+            <p className="text-xs text-[#6B7280] mb-2">
+              Deleting removes this student's personal details, grades, attendance, fees, and parent links
+              permanently. Their login stays in Supabase's Authentication system until removed there separately.
+            </p>
+            <StatusLine status={deleteStatus} />
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={deleteBusy}
+                  onClick={doDelete}
+                  className="text-xs px-3 py-1.5 rounded-sm bg-[#DC2626] text-white hover:opacity-90 disabled:opacity-60"
+                >
+                  {deleteBusy ? "Deleting…" : "Yes, delete this student"}
+                </button>
+                <button onClick={() => setConfirmDelete(false)} className="text-xs text-[#6B7280]">
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="text-xs px-3 py-1.5 rounded-sm border border-[#DC2626] text-[#DC2626] hover:bg-[#FEF2F2]"
+              >
+                Delete this student
+              </button>
+            )}
+          </div>
+        </>
       )}
     </Panel>
   );
