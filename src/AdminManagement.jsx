@@ -1320,26 +1320,51 @@ export default function AdminManagement({ initialStudentId }) {
   const bumpStudents = () => setStudentsVersion((v) => v + 1);
 
   return (
-    <div className="grid md:grid-cols-2 gap-5">
-      <Panel title="Create a Class" icon={BookPlus}>
-        <CreateClassForm onCreated={() => setRefreshKey((k) => k + 1)} />
-      </Panel>
-      <RegistrationCodesPanel />
-      <EnrollStudentPanel onStudentsChanged={bumpStudents} />
-      <PersonalDetailsPanel key={`details-${studentsVersion}`} initialStudentId={initialStudentId} onStudentsChanged={bumpStudents} />
-      <FeesPanel key={`fees-${studentsVersion}`} initialStudentId={initialStudentId} />
-      <ClassList key={`classlist-${refreshKey}`} />
-      <Panel title="Assign a Student's Class" icon={UserPlus}>
-        <EnrollStudentForm key={`assign-${studentsVersion}`} />
-      </Panel>
-      <Panel title="Link a Parent to a Student" icon={Link2}>
-        <LinkParentForm key={`link-${studentsVersion}`} />
-      </Panel>
-      <ParentLinksPanel key={`parentlinks-${studentsVersion}`} />
-      <RemoveStaffPanel />
-      <Panel title="Post an Announcement" icon={Megaphone}>
-        <PostAnnouncementForm />
-      </Panel>
+    <div className="space-y-8">
+      <Section title="Students">
+        <EnrollStudentPanel onStudentsChanged={bumpStudents} />
+        <RegistrationCodesPanel />
+        <PersonalDetailsPanel key={`details-${studentsVersion}`} initialStudentId={initialStudentId} onStudentsChanged={bumpStudents} />
+        <FeesPanel key={`fees-${studentsVersion}`} initialStudentId={initialStudentId} />
+        <Panel title="Assign a Student's Class" icon={UserPlus}>
+          <EnrollStudentForm key={`assign-${studentsVersion}`} />
+        </Panel>
+      </Section>
+
+      <Section title="Classes">
+        <Panel title="Create a Class" icon={BookPlus}>
+          <CreateClassForm onCreated={() => setRefreshKey((k) => k + 1)} />
+        </Panel>
+        <ClassList key={`classlist-${refreshKey}`} />
+      </Section>
+
+      <Section title="Parents">
+        <Panel title="Link a Parent to a Student" icon={Link2}>
+          <LinkParentForm key={`link-${studentsVersion}`} />
+        </Panel>
+        <ParentLinksPanel key={`parentlinks-${studentsVersion}`} />
+      </Section>
+
+      <Section title="Staff">
+        <RemoveStaffPanel />
+      </Section>
+
+      <Section title="Announcements">
+        <Panel title="Post an Announcement" icon={Megaphone}>
+          <PostAnnouncementForm />
+        </Panel>
+      </Section>
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div>
+      <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#6B7280] mb-3 pb-2 border-b border-[#E7E9F3]">
+        {title}
+      </h2>
+      <div className="grid md:grid-cols-2 gap-5">{children}</div>
     </div>
   );
 }
