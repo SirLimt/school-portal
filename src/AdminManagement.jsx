@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BookPlus, UserPlus, Link2, Megaphone, Pencil, Trash2, X, ListChecks, KeyRound, ShieldPlus, Receipt, UserMinus, Contact } from "lucide-react";
+import { BookPlus, UserPlus, Link2, Megaphone, Pencil, Trash2, X, ListChecks, KeyRound, ShieldPlus, Receipt, UserMinus, Contact, RefreshCw } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import {
   useProfilesByRole,
@@ -56,6 +56,32 @@ function Field({ label, children }) {
       <label className="text-xs uppercase tracking-wide text-[#6B7280]">{label}</label>
       {children}
     </div>
+  );
+}
+
+// A student dropdown that can be manually refreshed — since a student
+// signing up on their own device doesn't automatically update lists
+// already open in the admin's browser tab.
+function StudentPicker({ students, value, onChange, label = "Student" }) {
+  return (
+    <Field label={label}>
+      <div className="flex items-center gap-1.5">
+        <select value={value} onChange={(e) => onChange(e.target.value)} className={inputClass + " flex-1"}>
+          <option value="">Choose a student…</option>
+          {(students.data ?? []).map((s) => (
+            <option key={s.id} value={s.id}>{s.full_name}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => students.refetch()}
+          title="Refresh the student list"
+          className="shrink-0 p-1.5 text-[#6B7280] hover:text-[#0B6B2B]"
+        >
+          <RefreshCw size={14} />
+        </button>
+      </div>
+    </Field>
   );
 }
 
@@ -266,14 +292,7 @@ function EnrollStudentForm() {
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <Field label="Student">
-        <select required value={studentId} onChange={(e) => setStudentId(e.target.value)} className={inputClass}>
-          <option value="">Choose a student…</option>
-          {(students.data ?? []).map((s) => (
-            <option key={s.id} value={s.id}>{s.full_name}</option>
-          ))}
-        </select>
-      </Field>
+      <StudentPicker students={students} value={studentId} onChange={setStudentId} />
       <Field label="Class">
         <select required value={className} onChange={(e) => setClassName(e.target.value)} className={inputClass}>
           <option value="">Choose a class…</option>
@@ -313,21 +332,19 @@ function LinkParentForm() {
   return (
     <form onSubmit={submit} className="space-y-3">
       <Field label="Parent">
-        <select required value={parentId} onChange={(e) => setParentId(e.target.value)} className={inputClass}>
-          <option value="">Choose a parent…</option>
-          {(parents.data ?? []).map((p) => (
-            <option key={p.id} value={p.id}>{p.full_name}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-1.5">
+          <select required value={parentId} onChange={(e) => setParentId(e.target.value)} className={inputClass + " flex-1"}>
+            <option value="">Choose a parent…</option>
+            {(parents.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>{p.full_name}</option>
+            ))}
+          </select>
+          <button type="button" onClick={() => parents.refetch()} title="Refresh the parent list" className="shrink-0 p-1.5 text-[#6B7280] hover:text-[#0B6B2B]">
+            <RefreshCw size={14} />
+          </button>
+        </div>
       </Field>
-      <Field label="Student">
-        <select required value={studentId} onChange={(e) => setStudentId(e.target.value)} className={inputClass}>
-          <option value="">Choose a student…</option>
-          {(students.data ?? []).map((s) => (
-            <option key={s.id} value={s.id}>{s.full_name}</option>
-          ))}
-        </select>
-      </Field>
+      <StudentPicker students={students} value={studentId} onChange={setStudentId} />
       <StatusLine status={status} />
       <button disabled={busy} className="text-sm bg-[#0B6B2B] text-[#FFFFFF] px-4 py-1.5 rounded-sm hover:bg-[#084F20] disabled:opacity-60">
         {busy ? "Linking…" : "Link parent to student"}
@@ -862,7 +879,7 @@ function FeesSummary({ studentId, bills }) {
   );
 }
 
-function FeesPanel({ initialStudentId }) {
+export function FeesPanel({ initialStudentId }) {
   const students = useProfilesByRole("student");
   const [studentId, setStudentId] = useState(initialStudentId || "");
   const [session, setSession] = useState("");
@@ -896,14 +913,7 @@ function FeesPanel({ initialStudentId }) {
 
   return (
     <Panel title="Fees" icon={Receipt}>
-      <Field label="Student">
-        <select value={studentId} onChange={(e) => setStudentId(e.target.value)} className={inputClass}>
-          <option value="">Choose a student…</option>
-          {(students.data ?? []).map((s) => (
-            <option key={s.id} value={s.id}>{s.full_name}</option>
-          ))}
-        </select>
-      </Field>
+      <StudentPicker students={students} value={studentId} onChange={setStudentId} />
 
       {studentId && (
         <>
@@ -1148,7 +1158,7 @@ function DetailFieldInput({ field, value, onChange }) {
   );
 }
 
-function PersonalDetailsPanel({ initialStudentId, onStudentsChanged }) {
+export function PersonalDetailsPanel({ initialStudentId, onStudentsChanged }) {
   const students = useProfilesByRole("student");
   const [studentId, setStudentId] = useState(initialStudentId || "");
   const [form, setForm] = useState(emptyDetails());
@@ -1227,14 +1237,7 @@ function PersonalDetailsPanel({ initialStudentId, onStudentsChanged }) {
 
   return (
     <Panel title="Personal Details" icon={Contact}>
-      <Field label="Student">
-        <select value={studentId} onChange={(e) => setStudentId(e.target.value)} className={inputClass}>
-          <option value="">Choose a student…</option>
-          {(students.data ?? []).map((s) => (
-            <option key={s.id} value={s.id}>{s.full_name}</option>
-          ))}
-        </select>
-      </Field>
+      <StudentPicker students={students} value={studentId} onChange={setStudentId} />
 
       {studentId && (
         <>
@@ -1433,11 +1436,16 @@ function StudentClassCard({ row, onEditPersonalDetails, onEditFees }) {
 }
 
 export function ClassRosterView({ className, onEditPersonalDetails, onEditFees }) {
-  const { data, loading, error } = useStudentsByClass(className);
+  const { data, loading, error, refetch } = useStudentsByClass(className);
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-[#0B6B2B] mb-4">{className}</h2>
+      <div className="flex items-center gap-2 mb-4">
+        <h2 className="text-lg font-semibold text-[#0B6B2B]">{className}</h2>
+        <button onClick={refetch} title="Refresh this class list" className="p-1 text-[#6B7280] hover:text-[#0B6B2B]">
+          <RefreshCw size={14} />
+        </button>
+      </div>
       {loading ? (
         <p className="text-sm text-[#6B7280]">Loading students…</p>
       ) : error ? (

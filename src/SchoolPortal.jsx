@@ -15,10 +15,11 @@ import {
   Receipt,
   Search,
   Contact,
+  ChevronLeft,
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import Login, { ResetPasswordScreen } from "./Login";
-import AdminManagement, { CLASS_LIST, ClassRosterView, GrantAdminPanel, ManageAdminsPanel } from "./AdminManagement";
+import AdminManagement, { CLASS_LIST, ClassRosterView, GrantAdminPanel, ManageAdminsPanel, PersonalDetailsPanel, FeesPanel } from "./AdminManagement";
 import crest from "./assets/crest.jpg";
 import {
   useAnnouncements,
@@ -475,18 +476,38 @@ function TeacherView({ profile, activeSection }) {
 function AdminView({ tab, setTab }) {
   const { students, staff, staffDirectory } = useAdminStats();
   const [focusStudentId, setFocusStudentId] = useState(null);
+  const [returnTab, setReturnTab] = useState(null);
 
-  const goToManage = (studentId) => {
+  const openStudentEdit = (studentId) => {
     setFocusStudentId(studentId);
-    setTab("manage");
+    setReturnTab(CLASS_LIST.includes(tab) ? tab : returnTab);
+    setTab("edit-student");
   };
+
+  if (tab === "edit-student") {
+    return (
+      <div className="max-w-2xl">
+        <button
+          onClick={() => setTab(returnTab ?? "overview")}
+          className="flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#0B6B2B] mb-4"
+        >
+          <ChevronLeft size={16} />
+          Back{returnTab ? ` to ${returnTab}` : ""}
+        </button>
+        <div className="space-y-5">
+          <PersonalDetailsPanel initialStudentId={focusStudentId} />
+          <FeesPanel initialStudentId={focusStudentId} />
+        </div>
+      </div>
+    );
+  }
 
   if (CLASS_LIST.includes(tab)) {
     return (
       <ClassRosterView
         className={tab}
-        onEditPersonalDetails={goToManage}
-        onEditFees={goToManage}
+        onEditPersonalDetails={openStudentEdit}
+        onEditFees={openStudentEdit}
       />
     );
   }
@@ -510,7 +531,7 @@ function AdminView({ tab, setTab }) {
   return (
     <div>
       {tab === "manage" ? (
-        <AdminManagement initialStudentId={focusStudentId} />
+        <AdminManagement />
       ) : (
         <div className="grid md:grid-cols-2 gap-5">
           <Ledger id="overview" title="School at a Glance" icon={Building2}>
