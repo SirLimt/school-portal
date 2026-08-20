@@ -74,6 +74,10 @@ export function AuthProvider({ children }) {
 
     if (result.error) {
       await supabase.rpc("release_registration_code", { p_code: regNumber.trim() });
+    } else {
+      // Pull in whatever personal details admin already entered when they
+      // created this registration number, if any.
+      await supabase.rpc("finish_student_enrollment", { p_code: regNumber.trim() });
     }
     return result;
   };

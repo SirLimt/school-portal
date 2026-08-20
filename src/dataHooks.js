@@ -183,7 +183,7 @@ export async function postGrade({ studentId, classId, grade }) {
 
 export function useRegistrationCodes() {
   return useQuery(
-    () => supabase.from("registration_codes").select("code, used, created_at").order("created_at", { ascending: false }),
+    () => supabase.from("registration_codes").select("code, used, created_at, first_name, surname, class").order("created_at", { ascending: false }),
     []
   );
 }
@@ -191,6 +191,10 @@ export function useRegistrationCodes() {
 export async function addRegistrationCodes(codes) {
   const rows = codes.map((code) => ({ code: code.trim() })).filter((r) => r.code);
   return supabase.from("registration_codes").insert(rows);
+}
+
+export async function enrollStudentWithCode(code, details) {
+  return supabase.from("registration_codes").insert({ code: code.trim(), ...details });
 }
 
 export async function deleteRegistrationCode(code) {

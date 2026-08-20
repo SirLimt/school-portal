@@ -12,6 +12,7 @@ import {
   useRegistrationCodes,
   addRegistrationCodes,
   deleteRegistrationCode,
+  enrollStudentWithCode,
   useStaffAndParents,
   promoteToAdmin,
   useAdmins,
@@ -477,7 +478,15 @@ function RegistrationCodesPanel() {
           <ul className="text-sm divide-y divide-[#EDEEF5] max-h-64 overflow-y-auto">
             {data.map((c) => (
               <li key={c.code} className="py-2 flex items-center justify-between gap-2">
-                <span className="text-[#1F2937] font-mono">{c.code}</span>
+                <div>
+                  <span className="text-[#1F2937] font-mono">{c.code}</span>
+                  {(c.first_name || c.surname) && (
+                    <span className="block text-xs text-[#6B7280]">
+                      {[c.first_name, c.surname].filter(Boolean).join(" ")}
+                      {c.class ? ` · ${c.class}` : ""}
+                    </span>
+                  )}
+                </div>
                 <span className={`text-xs ${c.used ? "text-[#6B7280]" : "text-[#0B6B2B]"}`}>
                   {c.used ? "used" : "available"}
                 </span>
@@ -489,6 +498,57 @@ function RegistrationCodesPanel() {
           </ul>
         )}
       </div>
+    </Panel>
+  );
+}
+
+function EnrollStudentPanel() {
+  const [code, setCode] = useState("");
+  const [form, setForm] = useState(emptyDetails());
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await enrollStudentWithCode(code, form);
+    setBusy(false);
+    if (error) {
+      setStatus({ ok: false, message: error.message });
+      return;
+    }
+    setStatus({ ok: true, message: `Enrolled — give "${code}" to the student so they can sign up.` });
+    setCode("");
+    setForm(emptyDetails());
+  };
+
+  return (
+    <Panel title="Enroll a Student" icon={UserPlus}>
+      <p className="text-sm text-[#5C5340] mb-3">
+        Enter a new student's details and pick their registration number here first. Once you hand them the number,
+        they sign up with it and their details will already be filled in.
+      </p>
+      <form onSubmit={submit} className="space-y-3">
+        <Field label="Registration Number">
+          <input required value={code} onChange={(e) => setCode(e.target.value)} className={inputClass} placeholder="YES2026003" />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          {DETAIL_FIELDS.map((f) => (
+            <Field key={f.key} label={f.label}>
+              <input
+                type={f.type ?? "text"}
+                value={form[f.key]}
+                onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                className={inputClass}
+              />
+            </Field>
+          ))}
+        </div>
+        <StatusLine status={status} />
+        <button disabled={busy} className="text-sm bg-[#0B6B2B] text-[#FFFFFF] px-4 py-1.5 rounded-sm hover:bg-[#084F20] disabled:opacity-60">
+          {busy ? "Enrolling…" : "Enroll student"}
+        </button>
+      </form>
     </Panel>
   );
 }
@@ -1148,10 +1208,11 @@ export default function AdminManagement({ initialStudentId }) {
         <CreateClassForm onCreated={() => setRefreshKey((k) => k + 1)} />
       </Panel>
       <RegistrationCodesPanel />
+      <EnrollStudentPanel />
       <PersonalDetailsPanel initialStudentId={initialStudentId} />
       <FeesPanel initialStudentId={initialStudentId} />
       <ClassList key={`classlist-${refreshKey}`} />
-      <Panel title="Enroll a Student" icon={UserPlus}>
+      <Panel title="Assign a Student's Class" icon={UserPlus}>
         <EnrollStudentForm />
       </Panel>
       <Panel title="Link a Parent to a Student" icon={Link2}>
