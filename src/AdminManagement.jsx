@@ -30,6 +30,7 @@ import {
   useAnnouncements,
   deleteAnnouncement,
   useStudentsByClass,
+  useUnclaimedByClass,
   useParentsOfStudent,
   useStudentFeeSummary,
   useStudentDetails,
@@ -1378,7 +1379,12 @@ function StudentClassCard({ row, onEditPersonalDetails, onEditFees }) {
     <div className="bg-white border border-[#EDEEF5] rounded-xl shadow-sm p-4">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
-          <p className="font-medium text-[#1F2937]">{row.profiles?.full_name}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-[#1F2937]">{row.profiles?.full_name}</p>
+            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[#F1FBF3] text-[#0B6B2B] border border-[#0B6B2B]">
+              Signed up
+            </span>
+          </div>
           <p className="text-xs text-[#6B7280]">Reg No: {row.profiles?.reg_number ?? "—"}</p>
         </div>
         <button onClick={() => onEditPersonalDetails(row.student_id)} className="text-xs px-2 py-1 rounded-sm border border-[#0B6B2B] text-[#0B6B2B] hover:bg-[#F1FBF3]">
@@ -1435,14 +1441,81 @@ function StudentClassCard({ row, onEditPersonalDetails, onEditFees }) {
   );
 }
 
+function PendingStudentCard({ row, onChanged }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const remove = async () => {
+    setBusy(true);
+    const { error } = await deleteRegistrationCode(row.code);
+    setBusy(false);
+    if (!error) onChanged();
+  };
+
+  const name = [row.first_name, row.middle_name, row.surname].filter(Boolean).join(" ") || "(name not entered)";
+
+  return (
+    <div className="bg-white border border-dashed border-[#D97706] rounded-xl shadow-sm p-4">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-[#1F2937]">{name}</p>
+            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[#FFFBEB] text-[#B45309] border border-[#D97706]">
+              Not signed up yet
+            </span>
+          </div>
+          <p className="text-xs text-[#6B7280] font-mono">Reg No: {row.code}</p>
+        </div>
+        {confirmDelete ? (
+          <div className="flex items-center gap-1.5 text-xs shrink-0">
+            <button disabled={busy} onClick={remove} className="text-[#DC2626] underline">
+              {busy ? "Removing…" : "Confirm"}
+            </button>
+            <button onClick={() => setConfirmDelete(false)} className="text-[#6B7280]"><X size={12} /></button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="text-xs px-2 py-1 rounded-sm border border-[#DC2626] text-[#DC2626] hover:bg-[#FEF2F2] shrink-0"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-xs text-[#6B7280]">
+        <p>Gender: <span className="text-[#1F2937]">{row.gender || "—"}</span></p>
+        <p>DOB: <span className="text-[#1F2937]">{row.date_of_birth || "—"}</span></p>
+        <p>Hometown: <span className="text-[#1F2937]">{row.hometown || "—"}</span></p>
+        <p>Father: <span className="text-[#1F2937]">{row.father_name || "—"} {row.father_phone ? `(${row.father_phone})` : ""}</span></p>
+        <p>Mother: <span className="text-[#1F2937]">{row.mother_name || "—"} {row.mother_phone ? `(${row.mother_phone})` : ""}</span></p>
+      </div>
+
+      <p className="text-xs text-[#B45309] mt-3 pt-3 border-t border-[#EDEEF5]">
+        Give this registration number to the student so they can sign up.
+      </p>
+    </div>
+  );
+}
+
 export function ClassRosterView({ className, onEditPersonalDetails, onEditFees }) {
-  const { data, loading, error, refetch } = useStudentsByClass(className);
+  const signedUp = useStudentsByClass(className);
+  const pending = useUnclaimedByClass(className);
+
+  const refetchAll = () => {
+    signedUp.refetch();
+    pending.refetch();
+  };
+
+  const loading = signedUp.loading || pending.loading;
+  const error = signedUp.error || pending.error;
+  const totalCount = (signedUp.data?.length ?? 0) + (pending.data?.length ?? 0);
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-lg font-semibold text-[#0B6B2B]">{className}</h2>
-        <button onClick={refetch} title="Refresh this class list" className="p-1 text-[#6B7280] hover:text-[#0B6B2B]">
+        <button onClick={refetchAll} title="Refresh this class list" className="p-1 text-[#6B7280] hover:text-[#0B6B2B]">
           <RefreshCw size={14} />
         </button>
       </div>
@@ -1450,13 +1523,17 @@ export function ClassRosterView({ className, onEditPersonalDetails, onEditFees }
         <p className="text-sm text-[#6B7280]">Loading students…</p>
       ) : error ? (
         <p className="text-sm text-[#DC2626]">Couldn't load: {error}</p>
-      ) : !data?.length ? (
+      ) : totalCount === 0 ? (
         <p className="text-sm text-[#6B7280]">
-          No students placed in this class yet — set a student's "Class" in Personal Details to add them here.
+          No students placed in this class yet — set a student's "Class" in Personal Details, or enroll a new one, to
+          add them here.
         </p>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {data.map((row) => (
+          {(pending.data ?? []).map((row) => (
+            <PendingStudentCard key={row.code} row={row} onChanged={refetchAll} />
+          ))}
+          {(signedUp.data ?? []).map((row) => (
             <StudentClassCard key={row.student_id} row={row} onEditPersonalDetails={onEditPersonalDetails} onEditFees={onEditFees} />
           ))}
         </div>

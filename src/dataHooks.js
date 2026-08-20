@@ -356,6 +356,21 @@ export function useStudentsByClass(className) {
   );
 }
 
+// Students an admin has already enrolled (with a registration number
+// waiting to be handed out) but who haven't signed up for an account yet.
+export function useUnclaimedByClass(className) {
+  return useQuery(
+    () =>
+      supabase
+        .from("registration_codes")
+        .select("code, first_name, middle_name, surname, gender, date_of_birth, hometown, father_name, father_phone, mother_name, mother_phone, created_at")
+        .eq("class", className)
+        .eq("used", false)
+        .order("surname", { ascending: true }),
+    [className]
+  );
+}
+
 export function useParentsOfStudent(studentId) {
   return useQuery(
     () =>
