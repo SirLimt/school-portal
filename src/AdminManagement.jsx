@@ -625,6 +625,7 @@ function BillRow({ bill, onChanged }) {
   const [editing, setEditing] = useState(false);
   const [description, setDescription] = useState(bill.description);
   const [amount, setAmount] = useState(bill.amount);
+  const [amountPaid, setAmountPaid] = useState(bill.amount_paid ?? 0);
   const [dueDate, setDueDate] = useState(bill.due_date ?? "");
   const [payAmount, setPayAmount] = useState("");
   const [status, setStatus] = useState(null);
@@ -635,7 +636,14 @@ function BillRow({ bill, onChanged }) {
 
   const saveEdit = async () => {
     setBusy(true);
-    const { error } = await editBill(bill.id, { description, amount: Number(amount), due_date: dueDate || null });
+    const paidValue = Number(amountPaid) || 0;
+    const { error } = await editBill(bill.id, {
+      description,
+      amount: Number(amount),
+      due_date: dueDate || null,
+      amount_paid: paidValue,
+      paid: paidValue >= Number(amount),
+    });
     setBusy(false);
     if (error) {
       setStatus({ ok: false, message: error.message });
@@ -670,6 +678,10 @@ function BillRow({ bill, onChanged }) {
         <div className="grid grid-cols-2 gap-2">
           <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} placeholder="Amount" />
           <input type="date" value={dueDate ?? ""} onChange={(e) => setDueDate(e.target.value)} className={inputClass} />
+        </div>
+        <div>
+          <label className="text-xs text-[#6B7280]">Amount Paid</label>
+          <input type="number" step="0.01" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className={inputClass} placeholder="Amount paid" />
         </div>
         <StatusLine status={status} />
         <div className="flex gap-2">
