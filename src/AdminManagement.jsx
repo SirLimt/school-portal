@@ -535,11 +535,10 @@ function EnrollStudentPanel() {
         <div className="grid grid-cols-2 gap-3">
           {DETAIL_FIELDS.map((f) => (
             <Field key={f.key} label={f.label}>
-              <input
-                type={f.type ?? "text"}
+              <DetailFieldInput
+                field={f}
                 value={form[f.key]}
-                onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                className={inputClass}
+                onChange={(v) => setForm((prev) => ({ ...prev, [f.key]: v }))}
               />
             </Field>
           ))}
@@ -1126,6 +1125,27 @@ function emptyDetails() {
   return DETAIL_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: "" }), {});
 }
 
+function DetailFieldInput({ field, value, onChange }) {
+  if (field.key === "class") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <option value="">— not set —</option>
+        {CLASS_LIST.map((c) => (
+          <option key={c} value={c}>{c}</option>
+        ))}
+      </select>
+    );
+  }
+  return (
+    <input
+      type={field.type ?? "text"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={inputClass}
+    />
+  );
+}
+
 function PersonalDetailsPanel({ initialStudentId }) {
   const students = useProfilesByRole("student");
   const [studentId, setStudentId] = useState(initialStudentId || "");
@@ -1179,11 +1199,10 @@ function PersonalDetailsPanel({ initialStudentId }) {
             <div className="grid grid-cols-2 gap-3">
               {DETAIL_FIELDS.map((f) => (
                 <Field key={f.key} label={f.label}>
-                  <input
-                    type={f.type ?? "text"}
+                  <DetailFieldInput
+                    field={f}
                     value={form[f.key]}
-                    onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                    className={inputClass}
+                    onChange={(v) => setForm((prev) => ({ ...prev, [f.key]: v }))}
                   />
                 </Field>
               ))}
