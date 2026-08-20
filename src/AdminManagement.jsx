@@ -1148,7 +1148,7 @@ function DetailFieldInput({ field, value, onChange }) {
   );
 }
 
-function PersonalDetailsPanel({ initialStudentId }) {
+function PersonalDetailsPanel({ initialStudentId, onStudentsChanged }) {
   const students = useProfilesByRole("student");
   const [studentId, setStudentId] = useState(initialStudentId || "");
   const [form, setForm] = useState(emptyDetails());
@@ -1222,6 +1222,7 @@ function PersonalDetailsPanel({ initialStudentId }) {
     }
     setStudentId("");
     students.refetch();
+    onStudentsChanged?.();
   };
 
   return (
@@ -1311,6 +1312,8 @@ function PersonalDetailsPanel({ initialStudentId }) {
 
 export default function AdminManagement({ initialStudentId }) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [studentsVersion, setStudentsVersion] = useState(0);
+  const bumpStudents = () => setStudentsVersion((v) => v + 1);
 
   return (
     <div className="grid md:grid-cols-2 gap-5">
@@ -1318,17 +1321,17 @@ export default function AdminManagement({ initialStudentId }) {
         <CreateClassForm onCreated={() => setRefreshKey((k) => k + 1)} />
       </Panel>
       <RegistrationCodesPanel />
-      <EnrollStudentPanel />
-      <PersonalDetailsPanel initialStudentId={initialStudentId} />
-      <FeesPanel initialStudentId={initialStudentId} />
+      <EnrollStudentPanel onStudentsChanged={bumpStudents} />
+      <PersonalDetailsPanel key={`details-${studentsVersion}`} initialStudentId={initialStudentId} onStudentsChanged={bumpStudents} />
+      <FeesPanel key={`fees-${studentsVersion}`} initialStudentId={initialStudentId} />
       <ClassList key={`classlist-${refreshKey}`} />
       <Panel title="Assign a Student's Class" icon={UserPlus}>
-        <EnrollStudentForm />
+        <EnrollStudentForm key={`assign-${studentsVersion}`} />
       </Panel>
       <Panel title="Link a Parent to a Student" icon={Link2}>
-        <LinkParentForm />
+        <LinkParentForm key={`link-${studentsVersion}`} />
       </Panel>
-      <ParentLinksPanel />
+      <ParentLinksPanel key={`parentlinks-${studentsVersion}`} />
       <RemoveStaffPanel />
       <Panel title="Post an Announcement" icon={Megaphone}>
         <PostAnnouncementForm />

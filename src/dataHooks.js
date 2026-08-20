@@ -20,6 +20,16 @@ function useQuery(fn, deps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
+  // Quietly refresh whenever the person comes back to this tab — catches
+  // changes made elsewhere (another admin, another tab, a student signing
+  // up) without needing a manual page reload.
+  useEffect(() => {
+    const onFocus = () => run();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
   return { data, loading, error, refetch: run };
 }
 
