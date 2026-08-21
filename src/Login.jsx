@@ -9,16 +9,19 @@ const ROLE_OPTIONS = [
   { value: "parent", label: "Parent" },
 ];
 
-const shellClass = "min-h-screen bg-[#F5FAF6] flex items-center justify-center px-4";
-const cardClass = "w-full max-w-sm bg-white border border-[#EDEEF5] rounded-xl shadow-sm overflow-hidden";
+const shellClass = "min-h-screen flex items-center justify-center px-4";
+const shellStyle = { background: "linear-gradient(160deg, #F5FAF6 0%, #EAF6ED 40%, #FFF7E6 100%)" };
+const cardClass = "w-full max-w-sm bg-white border border-[#EDEEF5] rounded-xl shadow-lg overflow-hidden";
 const inputClass = "w-full mt-1 bg-transparent border-b border-[#E5E7F0] focus:outline-none focus:border-[#0B6B2B] py-1.5 text-[#1F2937]";
 
 function Header({ title }) {
   return (
-    <div className="bg-[#0B6B2B] px-6 py-6 text-center">
-      <img src={crest} alt={`${SCHOOL} crest`} className="mx-auto mb-2 h-16 w-16 rounded-full object-cover" />
-      <p className="text-[11px] uppercase tracking-[0.25em] text-[#D9F2C4]">{SCHOOL}</p>
-      <h1 className="text-lg font-semibold text-white mt-1">{title}</h1>
+    <div className="relative px-6 py-6 text-center overflow-hidden" style={{ background: "linear-gradient(135deg, #0B6B2B, #064420)" }}>
+      <div className="pointer-events-none absolute -top-10 -right-8 h-28 w-28 rounded-full bg-white/10 blur-xl" />
+      <div className="pointer-events-none absolute -bottom-8 -left-6 h-20 w-20 rounded-full" style={{ background: "#E3A400", opacity: 0.2, filter: "blur(16px)" }} />
+      <img src={crest} alt={`${SCHOOL} crest`} className="relative mx-auto mb-2 h-16 w-16 rounded-full object-cover ring-4 ring-white/20" />
+      <p className="relative text-[11px] uppercase tracking-[0.25em] text-[#D9F2C4]">{SCHOOL}</p>
+      <h1 className="relative text-lg font-semibold text-white mt-1">{title}</h1>
     </div>
   );
 }
@@ -40,7 +43,7 @@ function ForgotPasswordForm({ onBack }) {
   };
 
   return (
-    <div className={shellClass} style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className={shellClass} style={{ ...shellStyle, fontFamily: "'Inter', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');`}</style>
       <div className={cardClass}>
         <Header title="Reset your password" />
@@ -90,7 +93,7 @@ export function ResetPasswordScreen() {
   };
 
   return (
-    <div className={shellClass} style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className={shellClass} style={{ ...shellStyle, fontFamily: "'Inter', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');`}</style>
       <div className={cardClass}>
         <Header title="Choose a new password" />
@@ -170,7 +173,7 @@ export default function Login() {
   };
 
   return (
-    <div className={shellClass} style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className={shellClass} style={{ ...shellStyle, fontFamily: "'Inter', sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');`}</style>
 
       <div className={cardClass}>

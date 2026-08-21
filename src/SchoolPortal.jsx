@@ -47,12 +47,27 @@ const ROLE_META = {
 
 const notebookLines = {};
 
-function Ledger({ id, title, icon: Icon, children }) {
+const ACCENTS = {
+  green: { bar: "#0B6B2B", iconBg: "#E7F5EB", iconFg: "#0B6B2B" },
+  gold: { bar: "#B45309", iconBg: "#FFF7E6", iconFg: "#B45309" },
+  indigo: { bar: "#4338CA", iconBg: "#EEF1FF", iconFg: "#4338CA" },
+  blue: { bar: "#1D4ED8", iconBg: "#EAF1FF", iconFg: "#1D4ED8" },
+  teal: { bar: "#0F766E", iconBg: "#E7F8F5", iconFg: "#0F766E" },
+  rose: { bar: "#BE123C", iconBg: "#FFEEF1", iconFg: "#BE123C" },
+};
+
+function Ledger({ id, title, icon: Icon, accent = "green", children }) {
+  const a = ACCENTS[accent] ?? ACCENTS.green;
   return (
     <div id={id} className="bg-white border border-[#EDEEF5] rounded-xl shadow-sm overflow-hidden scroll-mt-28">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#EDEEF5]">
-        {Icon && <Icon size={16} className="text-[#0B6B2B]" />}
-        <h3 className="text-xs font-semibold tracking-wide uppercase text-[#0B6B2B]">{title}</h3>
+      <div className="h-1" style={{ background: a.bar }} />
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[#EDEEF5]">
+        {Icon && (
+          <span className="flex items-center justify-center h-7 w-7 rounded-lg" style={{ background: a.iconBg }}>
+            <Icon size={15} style={{ color: a.iconFg }} />
+          </span>
+        )}
+        <h3 className="text-xs font-semibold tracking-wide uppercase" style={{ color: a.bar }}>{title}</h3>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -309,7 +324,7 @@ function StudentView({ profile, activeSection }) {
   return (
     <div className="max-w-3xl">
       {activeSection === "personal-details" && (
-        <Ledger id="personal-details" title="Personal Details" icon={Contact}>
+        <Ledger id="personal-details" title="Personal Details" icon={Contact} accent="teal">
           <PersonalDetailsView profile={profile} />
         </Ledger>
       )}
@@ -336,7 +351,7 @@ function StudentView({ profile, activeSection }) {
       )}
 
       {activeSection === "assignments" && (
-        <Ledger id="assignments" title="Assignments" icon={ClipboardList}>
+        <Ledger id="assignments" title="Assignments" icon={ClipboardList} accent="indigo">
           {assignments.loading ? (
             <Loading label="assignments" />
           ) : assignments.error ? (
@@ -357,19 +372,19 @@ function StudentView({ profile, activeSection }) {
       )}
 
       {activeSection === "grades" && (
-        <Ledger id="grades" title="Grades" icon={BarChart3}>
+        <Ledger id="grades" title="Grades" icon={BarChart3} accent="indigo">
           <TermGradesView studentId={profile.id} />
         </Ledger>
       )}
 
       {activeSection === "announcements" && (
-        <Ledger id="announcements" title="Announcements" icon={Bell}>
+        <Ledger id="announcements" title="Announcements" icon={Bell} accent="blue">
           <AnnouncementsPanel />
         </Ledger>
       )}
 
       {activeSection === "fees" && (
-        <Ledger id="fees" title="Fees" icon={Receipt}>
+        <Ledger id="fees" title="Fees" icon={Receipt} accent="gold">
           <FeesLedger studentId={profile.id} profile={profile} />
         </Ledger>
       )}
@@ -515,13 +530,13 @@ function TeacherView({ profile, activeSection }) {
       )}
 
       {activeSection === "postgrades" && (
-        <Ledger id="postgrades" title="Post Grades" icon={BarChart3}>
+        <Ledger id="postgrades" title="Post Grades" icon={BarChart3} accent="indigo">
           {activeClass ? <PostGrade classId={activeClass} /> : <p className="text-sm text-[#6B7280]">Pick a class to post grades.</p>}
         </Ledger>
       )}
 
       {activeSection === "announcements" && (
-        <Ledger id="announcements" title="Announcements" icon={Bell}>
+        <Ledger id="announcements" title="Announcements" icon={Bell} accent="blue">
           <AnnouncementsPanel />
         </Ledger>
       )}
@@ -593,22 +608,28 @@ function AdminView({ tab, setTab }) {
         <div className="grid md:grid-cols-2 gap-5">
           <Ledger id="overview" title="School at a Glance" icon={Building2}>
             <div className="grid grid-cols-2 gap-3">
-              <div className="border border-[#EDEEF5] rounded-lg p-3">
+              <div className="rounded-lg p-4" style={{ background: "linear-gradient(135deg, #E7F5EB, #F5FAF6)" }}>
+                <span className="flex items-center justify-center h-9 w-9 rounded-full bg-white shadow-sm mb-2">
+                  <GraduationCap size={16} className="text-[#0B6B2B]" />
+                </span>
                 <p className="text-2xl font-semibold text-[#0B6B2B]">
                   {students.loading ? "…" : students.data ?? 0}
                 </p>
-                <p className="text-xs text-[#6B7280] mt-1">Enrolled students</p>
+                <p className="text-xs text-[#6B7280] mt-0.5">Enrolled students</p>
               </div>
-              <div className="border border-[#EDEEF5] rounded-lg p-3">
-                <p className="text-2xl font-semibold text-[#0B6B2B]">
+              <div className="rounded-lg p-4" style={{ background: "linear-gradient(135deg, #EAF1FF, #F5FAF6)" }}>
+                <span className="flex items-center justify-center h-9 w-9 rounded-full bg-white shadow-sm mb-2">
+                  <Users size={16} className="text-[#1D4ED8]" />
+                </span>
+                <p className="text-2xl font-semibold text-[#1D4ED8]">
                   {staff.loading ? "…" : staff.data ?? 0}
                 </p>
-                <p className="text-xs text-[#6B7280] mt-1">Staff on record</p>
+                <p className="text-xs text-[#6B7280] mt-0.5">Staff on record</p>
               </div>
             </div>
           </Ledger>
 
-          <Ledger id="directory" title="Staff Directory" icon={Users}>
+          <Ledger id="directory" title="Staff Directory" icon={Users} accent="blue">
             {staffDirectory.loading ? (
               <Loading label="directory" />
             ) : staffDirectory.error ? (
@@ -625,7 +646,7 @@ function AdminView({ tab, setTab }) {
             )}
           </Ledger>
 
-          <Ledger id="announcements" title="Announcements" icon={Bell}>
+          <Ledger id="announcements" title="Announcements" icon={Bell} accent="blue">
             <AnnouncementsPanel />
           </Ledger>
         </div>
@@ -640,7 +661,7 @@ function ParentView({ profile, activeSection }) {
   return (
     <div className="max-w-3xl">
       {activeSection === "children" && (
-        <Ledger id="children" title="Your Children" icon={GraduationCap}>
+        <Ledger id="children" title="Your Children" icon={GraduationCap} accent="teal">
           {loading ? (
             <Loading label="children" />
           ) : error ? (
@@ -660,14 +681,14 @@ function ParentView({ profile, activeSection }) {
       )}
 
       {activeSection === "announcements" && (
-        <Ledger id="announcements" title="Announcements" icon={Bell}>
+        <Ledger id="announcements" title="Announcements" icon={Bell} accent="blue">
           <AnnouncementsPanel />
         </Ledger>
       )}
 
       {activeSection === "fees" &&
         (data ?? []).map((link, i) => (
-          <Ledger key={i} id="fees" title={`Fees — ${link.profiles?.full_name}`} icon={Receipt}>
+          <Ledger key={i} id="fees" title={`Fees — ${link.profiles?.full_name}`} icon={Receipt} accent="gold">
             <FeesLedger studentId={link.profiles?.id} profile={link.profiles} />
           </Ledger>
         ))}
@@ -765,33 +786,42 @@ function Sidebar({ items, adminTab, onNavigate }) {
 
 function Banner({ firstName, roleLabel, items, onNavigate }) {
   return (
-    <div className="relative bg-[#0B6B2B] px-6 md:px-10 pt-10 pb-14 overflow-hidden">
-      <p className="text-[11px] uppercase tracking-[0.25em] text-[#D9F2C4]">{roleLabel}</p>
-      <h2 className="text-2xl md:text-3xl font-semibold text-white mt-1">Hello, {firstName}.</h2>
-      <p className="text-[#D9F2E1] mt-1 text-sm">Here's what's new.</p>
+    <div
+      className="relative px-6 md:px-10 pt-10 pb-14 overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #0B6B2B 0%, #0F7D34 45%, #064420 100%)" }}
+    >
+      <div className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+      <div className="pointer-events-none absolute top-10 right-40 h-24 w-24 rounded-full" style={{ background: "#E3A400", opacity: 0.18, filter: "blur(24px)" }} />
+      <div className="pointer-events-none absolute -bottom-10 left-24 h-32 w-32 rounded-full bg-white/5 blur-xl" />
 
-      <div className="mt-6 max-w-xl relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          disabled
-          placeholder="Search coming soon…"
-          className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-white text-sm text-gray-500 placeholder:text-gray-400"
-        />
-      </div>
+      <div className="relative">
+        <p className="text-[11px] uppercase tracking-[0.25em] text-[#D9F2C4]">{roleLabel}</p>
+        <h2 className="text-2xl md:text-3xl font-semibold text-white mt-1">Hello, {firstName}.</h2>
+        <p className="text-[#D9F2E1] mt-1 text-sm">Here's what's new.</p>
 
-      {items.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className="text-xs px-3 py-1.5 rounded-full bg-[#0F7D34] text-white hover:bg-[#332A78]"
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="mt-6 max-w-xl relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            disabled
+            placeholder="Search coming soon…"
+            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-white text-sm text-gray-500 placeholder:text-gray-400 shadow-sm"
+          />
         </div>
-      )}
+
+        {items.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {items.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className="text-xs px-3 py-1.5 rounded-full bg-white/15 text-white border border-white/20 hover:bg-white/25 backdrop-blur-sm"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <svg className="absolute left-0 right-0 bottom-0 w-full" height="24" viewBox="0 0 1440 24" preserveAspectRatio="none">
         <path d="M0,12 C240,24 480,0 720,12 C960,24 1200,0 1440,12 L1440,24 L0,24 Z" fill="#F5FAF6" />

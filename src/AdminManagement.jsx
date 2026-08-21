@@ -47,12 +47,28 @@ import {
   deleteSubjectGrade,
 } from "./dataHooks";
 
-function Panel({ title, icon: Icon, children }) {
+const ACCENTS = {
+  green: { bar: "#0B6B2B", iconBg: "#E7F5EB", iconFg: "#0B6B2B" },
+  gold: { bar: "#B45309", iconBg: "#FFF7E6", iconFg: "#B45309" },
+  indigo: { bar: "#4338CA", iconBg: "#EEF1FF", iconFg: "#4338CA" },
+  blue: { bar: "#1D4ED8", iconBg: "#EAF1FF", iconFg: "#1D4ED8" },
+  teal: { bar: "#0F766E", iconBg: "#E7F8F5", iconFg: "#0F766E" },
+  rose: { bar: "#BE123C", iconBg: "#FFEEF1", iconFg: "#BE123C" },
+  slate: { bar: "#334155", iconBg: "#F1F5F9", iconFg: "#334155" },
+};
+
+function Panel({ title, icon: Icon, accent = "green", children }) {
+  const a = ACCENTS[accent] ?? ACCENTS.green;
   return (
     <div className="bg-white border border-[#EDEEF5] rounded-xl shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#EDEEF5]">
-        {Icon && <Icon size={16} className="text-[#0B6B2B]" />}
-        <h3 className="text-xs font-semibold tracking-wide uppercase text-[#0B6B2B]">{title}</h3>
+      <div className="h-1" style={{ background: a.bar }} />
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[#EDEEF5]">
+        {Icon && (
+          <span className="flex items-center justify-center h-7 w-7 rounded-lg" style={{ background: a.iconBg }}>
+            <Icon size={15} style={{ color: a.iconFg }} />
+          </span>
+        )}
+        <h3 className="text-xs font-semibold tracking-wide uppercase" style={{ color: a.bar }}>{title}</h3>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -226,7 +242,7 @@ function ClassList() {
   };
 
   return (
-    <Panel title="Existing Classes" icon={ListChecks}>
+    <Panel title="Existing Classes" icon={ListChecks} accent="slate">
       <StatusLine status={status} />
       {classes.loading ? (
         <p className="text-sm text-[#6B7280]">Loading classes…</p>
@@ -478,7 +494,7 @@ function SubjectsPanel() {
   };
 
   return (
-    <Panel title="Subjects" icon={ListChecks}>
+    <Panel title="Subjects" icon={ListChecks} accent="slate">
       <Field label="Class">
         <select value={className} onChange={(e) => setClassName(e.target.value)} className={inputClass}>
           <option value="">Choose a class…</option>
@@ -591,7 +607,7 @@ export function TermGradesPanel({ initialStudentId }) {
   })).filter((c) => c.rows.length > 0);
 
   return (
-    <Panel title="Term Grades" icon={ListChecks}>
+    <Panel title="Term Grades" icon={ListChecks} accent="indigo">
       <StudentPicker students={students} value={studentId} onChange={setStudentId} />
 
       {studentId && (
@@ -720,7 +736,7 @@ function RegistrationCodesPanel() {
   };
 
   return (
-    <Panel title="Registration Numbers" icon={KeyRound}>
+    <Panel title="Registration Numbers" icon={KeyRound} accent="teal">
       <p className="text-sm text-[#5C5340] mb-3">
         Add the registration numbers issued to students. A student can only sign up once with a number that's here
         and hasn't already been used.
@@ -795,7 +811,7 @@ function EnrollStudentPanel() {
   };
 
   return (
-    <Panel title="Enroll a Student" icon={UserPlus}>
+    <Panel title="Enroll a Student" icon={UserPlus} accent="teal">
       <p className="text-sm text-[#5C5340] mb-3">
         Enter a new student's details and pick their registration number here first. Once you hand them the number,
         they sign up with it and their details will already be filled in.
@@ -841,7 +857,7 @@ export function GrantAdminPanel() {
   };
 
   return (
-    <Panel title="Grant Admin Access" icon={ShieldPlus}>
+    <Panel title="Grant Admin Access" icon={ShieldPlus} accent="rose">
       <p className="text-sm text-[#5C5340] mb-3">
         Only accounts already signed up as Teacher or Parent are listed here — promote someone once you've verified
         who they are.
@@ -902,7 +918,7 @@ export function ManageAdminsPanel() {
   };
 
   return (
-    <Panel title="Current Admins" icon={ShieldPlus}>
+    <Panel title="Current Admins" icon={ShieldPlus} accent="rose">
       <p className="text-sm text-[#5C5340] mb-3">
         Remove someone's admin access by moving them back to Teacher or Parent.
       </p>
@@ -1165,7 +1181,7 @@ export function FeesPanel({ initialStudentId }) {
   };
 
   return (
-    <Panel title="Fees" icon={Receipt}>
+    <Panel title="Fees" icon={Receipt} accent="gold">
       <StudentPicker students={students} value={studentId} onChange={setStudentId} />
 
       {studentId && (
@@ -1248,7 +1264,7 @@ function ParentLinksPanel() {
   };
 
   return (
-    <Panel title="Parent Links" icon={Link2}>
+    <Panel title="Parent Links" icon={Link2} accent="teal">
       <p className="text-sm text-[#5C5340] mb-3">See which parent is linked to each student. Change or remove a link that's wrong.</p>
       <StatusLine status={status} />
       {loading ? (
@@ -1332,7 +1348,7 @@ function RemoveStaffPanel() {
   };
 
   return (
-    <Panel title="Remove Staff" icon={UserMinus}>
+    <Panel title="Remove Staff" icon={UserMinus} accent="rose">
       <p className="text-sm text-[#5C5340] mb-3">
         For a teacher who's left the school. This removes them from the directory and unassigns their classes. To
         fully delete their login too (so the email can be reused), do that separately in Supabase's dashboard under
@@ -1489,7 +1505,7 @@ export function PersonalDetailsPanel({ initialStudentId, onStudentsChanged }) {
   };
 
   return (
-    <Panel title="Personal Details" icon={Contact}>
+    <Panel title="Personal Details" icon={Contact} accent="teal">
       <StudentPicker students={students} value={studentId} onChange={setStudentId} />
 
       {studentId && (
@@ -1578,7 +1594,7 @@ export default function AdminManagement({ initialStudentId }) {
         <RegistrationCodesPanel />
         <PersonalDetailsPanel key={`details-${studentsVersion}`} initialStudentId={initialStudentId} onStudentsChanged={bumpStudents} />
         <FeesPanel key={`fees-${studentsVersion}`} initialStudentId={initialStudentId} />
-        <Panel title="Assign a Student's Class" icon={UserPlus}>
+        <Panel title="Assign a Student's Class" icon={UserPlus} accent="teal">
           <EnrollStudentForm key={`assign-${studentsVersion}`} />
         </Panel>
       </Section>
@@ -1596,7 +1612,7 @@ export default function AdminManagement({ initialStudentId }) {
       </Section>
 
       <Section title="Parents">
-        <Panel title="Link a Parent to a Student" icon={Link2}>
+        <Panel title="Link a Parent to a Student" icon={Link2} accent="teal">
           <LinkParentForm key={`link-${studentsVersion}`} />
         </Panel>
         <ParentLinksPanel key={`parentlinks-${studentsVersion}`} />
@@ -1607,7 +1623,7 @@ export default function AdminManagement({ initialStudentId }) {
       </Section>
 
       <Section title="Announcements">
-        <Panel title="Post an Announcement" icon={Megaphone}>
+        <Panel title="Post an Announcement" icon={Megaphone} accent="blue">
           <PostAnnouncementForm />
         </Panel>
       </Section>
@@ -1618,7 +1634,8 @@ export default function AdminManagement({ initialStudentId }) {
 function Section({ title, children }) {
   return (
     <div>
-      <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#6B7280] mb-3 pb-2 border-b border-[#E7E9F3]">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#0B6B2B] mb-3 pb-2 border-b-2 border-[#E7E9F3] flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#0B6B2B]" />
         {title}
       </h2>
       <div className="grid md:grid-cols-2 gap-5">{children}</div>
