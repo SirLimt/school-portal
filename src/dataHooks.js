@@ -344,6 +344,72 @@ export async function deleteStudentRecord(studentId) {
   return supabase.from("profiles").delete().eq("id", studentId);
 }
 
+// ---- Subjects per class, and term-based subject grades (admin-managed) ----
+
+export function useClassSubjects(className) {
+  return useQuery(
+    () => supabase.from("class_subjects").select("id, subject").eq("class_name", className).order("subject"),
+    [className]
+  );
+}
+
+export async function addClassSubject(className, subject) {
+  return supabase.from("class_subjects").insert({ class_name: className, subject: subject.trim() });
+}
+
+export async function renameClassSubject(id, subject) {
+  return supabase.from("class_subjects").update({ subject: subject.trim() }).eq("id", id);
+}
+
+export async function deleteClassSubject(id) {
+  return supabase.from("class_subjects").delete().eq("id", id);
+}
+
+export function useStudentTermGrades(studentId, term) {
+  return useQuery(
+    () =>
+      supabase
+        .from("subject_grades")
+        .select("id, subject, grade, academic_year, updated_at")
+        .eq("student_id", studentId)
+        .eq("term", term)
+        .order("subject"),
+    [studentId, term]
+  );
+}
+
+export function useAllStudentGrades(studentId) {
+  return useQuery(
+    () =>
+      supabase
+        .from("subject_grades")
+        .select("id, term, subject, grade, academic_year")
+        .eq("student_id", studentId)
+        .order("term")
+        .order("subject"),
+    [studentId]
+  );
+}
+
+export async function saveSubjectGrade({ studentId, className, term, subject, grade, academicYear }) {
+  return supabase.from("subject_grades").upsert(
+    {
+      student_id: studentId,
+      class_name: className,
+      term,
+      subject,
+      grade,
+      academic_year: academicYear || "",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "student_id,term,subject,academic_year" }
+  );
+}
+
+export async function deleteSubjectGrade(id) {
+  return supabase.from("subject_grades").delete().eq("id", id);
+}
+
 export function useStudentsByClass(className) {
   return useQuery(
     () =>

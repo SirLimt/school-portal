@@ -37,6 +37,13 @@ import {
   saveStudentDetails,
   updateRegNumber,
   deleteStudentRecord,
+  useClassSubjects,
+  addClassSubject,
+  renameClassSubject,
+  deleteClassSubject,
+  useStudentTermGrades,
+  saveSubjectGrade,
+  deleteSubjectGrade,
 } from "./dataHooks";
 
 function Panel({ title, icon: Icon, children }) {
@@ -432,6 +439,196 @@ function PostAnnouncementForm() {
     </div>
   );
 }
+
+function SubjectsPanel() {
+  const [className, setClassName] = useState("");
+  const subjects = useClassSubjects(className || null);
+  const [newSubject, setNewSubject] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const add = async (e) => {
+    e.preventDefault();
+    if (!newSubject.trim()) return;
+    setBusy(true);
+    const { error } = await addClassSubject(className, newSubject);
+    setBusy(false);
+    if (error) {
+      setStatus({ ok: false, message: error.message });
+      return;
+    }
+    setNewSubject("");
+    subjects.refetch();
+  };
+
+  const saveRename = async (id) => {
+    const { error } = await renameClassSubject(id, editValue);
+    if (!error) {
+      setEditingId(null);
+      subjects.refetch();
+    }
+  };
+
+  const remove = async (id) => {
+    const { error } = await deleteClassSubject(id);
+    if (!error) subjects.refetch();
+  };
+
+  return (
+    <Panel title="Subjects" icon={ListChecks}>
+      <Field label="Class">
+        <select value={className} onChange={(e) => setClassName(e.target.value)} className={inputClass}>
+          <option value="">Choose a class…</option>
+          {CLASS_LIST.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </Field>
+
+      {className && (
+        <>
+          <form onSubmit={add} className="flex items-end gap-2 mt-3">
+            <div className="flex-1">
+              <Field label="Add a subject">
+                <input value={newSubject} onChange={(e) => setNewSubject(e.target.value)} className={inputClass} placeholder="Mathematics" />
+              </Field>
+            </div>
+            <button disabled={busy} className="text-sm bg-[#0B6B2B] text-white px-3 py-1.5 rounded-sm hover:bg-[#084F20] disabled:opacity-60 shrink-0">
+              Add
+            </button>
+          </form>
+          <StatusLine status={status} />
+
+          <div className="mt-3 pt-3 border-t border-[#EDEEF5]">
+            {subjects.loading ? (
+              <p className="text-sm text-[#6B7280]">Loading…</p>
+            ) : !subjects.data?.length ? (
+              <p className="text-sm text-[#6B7280]">No subjects added yet for {className}.</p>
+            ) : (
+              <ul className="text-sm divide-y divide-[#EDEEF5]">
+                {subjects.data.map((s) => (
+                  <li key={s.id} className="py-2 flex items-center justify-between gap-2">
+                    {editingId === s.id ? (
+                      <>
+                        <input value={editValue} onChange={(e) => setEditValue(e.target.value)} className={inputClass + " flex-1"} />
+                        <button onClick={() => saveRename(s.id)} className="text-xs text-[#0B6B2B] underline shrink-0">Save</button>
+                        <button onClick={() => setEditingId(null)} className="text-[#6B7280] shrink-0"><X size={14} /></button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[#1F2937]">{s.subject}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button onClick={() => { setEditingId(s.id); setEditValue(s.subject); }} className="text-[#0B6B2B] hover:opacity-70">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => remove(s.id)} className="text-[#DC2626] hover:opacity-70">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </Panel>
+  );
+}
+
+const TERMS = ["1st Term", "2nd Term", "3rd Term"];
+
+export function TermGradesPanel({ initialStudentId }) {
+  const students = useProfilesByRole("student");
+  const [studentId, setStudentId] = useState(initialStudentId || "");
+  const [term, setTerm] = useState(TERMS[0]);
+  const details = useStudentDetails(studentId || null);
+  const className = details.data?.class;
+  const subjects = useClassSubjects(className || null);
+  const grades = useStudentTermGrades(studentId || null, term);
+  const [inputs, setInputs] = useState({});
+  const [status, setStatus] = useState(null);
+
+  useEffect(() => {
+    if (initialStudentId) setStudentId(initialStudentId);
+  }, [initialStudentId]);
+
+  const gradeFor = (subject) => grades.data?.find((g) => g.subject === subject);
+
+  const save = async (subject) => {
+    const value = inputs[subject] ?? gradeFor(subject)?.grade ?? "";
+    if (!value) return;
+    const { error } = await saveSubjectGrade({ studentId, className, term, subject, grade: value });
+    setStatus(error ? { ok: false, message: error.message } : { ok: true, message: "Saved." });
+    if (!error) grades.refetch();
+  };
+
+  const remove = async (id) => {
+    const { error } = await deleteSubjectGrade(id);
+    if (!error) grades.refetch();
+  };
+
+  return (
+    <Panel title="Term Grades" icon={ListChecks}>
+      <StudentPicker students={students} value={studentId} onChange={setStudentId} />
+
+      {studentId && (
+        <>
+          <div className="mt-3">
+            <Field label="Term">
+              <select value={term} onChange={(e) => setTerm(e.target.value)} className={inputClass}>
+                {TERMS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          {!className ? (
+            <p className="text-sm text-[#6B7280] mt-3">
+              This student doesn't have a class set yet — set it in Personal Details first.
+            </p>
+          ) : !subjects.data?.length ? (
+            <p className="text-sm text-[#6B7280] mt-3">
+              No subjects added yet for {className} — add some in the Subjects panel first.
+            </p>
+          ) : (
+            <div className="mt-3 pt-3 border-t border-[#EDEEF5] space-y-2">
+              <StatusLine status={status} />
+              {subjects.data.map((s) => {
+                const existing = gradeFor(s.subject);
+                return (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <span className="text-sm text-[#1F2937] flex-1">{s.subject}</span>
+                    <input
+                      value={inputs[s.subject] ?? existing?.grade ?? ""}
+                      onChange={(e) => setInputs((prev) => ({ ...prev, [s.subject]: e.target.value }))}
+                      className={inputClass + " w-20"}
+                      placeholder="Grade"
+                    />
+                    <button onClick={() => save(s.subject)} className="text-xs px-2 py-1 rounded-sm border border-[#0B6B2B] text-[#0B6B2B] hover:bg-[#F1FBF3] shrink-0">
+                      Save
+                    </button>
+                    {existing && (
+                      <button onClick={() => remove(existing.id)} className="text-[#DC2626] hover:opacity-70 shrink-0" aria-label="Delete grade">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </Panel>
+  );
+}
+
 
 function RegistrationCodesPanel() {
   const { data, loading, error, refetch } = useRegistrationCodes();
@@ -1336,6 +1533,11 @@ export default function AdminManagement({ initialStudentId }) {
           <CreateClassForm onCreated={() => setRefreshKey((k) => k + 1)} />
         </Panel>
         <ClassList key={`classlist-${refreshKey}`} />
+        <SubjectsPanel />
+      </Section>
+
+      <Section title="Academics">
+        <TermGradesPanel initialStudentId={initialStudentId} />
       </Section>
 
       <Section title="Parents">

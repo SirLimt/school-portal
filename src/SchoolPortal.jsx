@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import Login, { ResetPasswordScreen } from "./Login";
-import AdminManagement, { CLASS_LIST, ClassRosterView, GrantAdminPanel, ManageAdminsPanel, PersonalDetailsPanel, FeesPanel } from "./AdminManagement";
+import AdminManagement, { CLASS_LIST, ClassRosterView, GrantAdminPanel, ManageAdminsPanel, PersonalDetailsPanel, FeesPanel, TermGradesPanel } from "./AdminManagement";
 import crest from "./assets/crest.jpg";
 import {
   useAnnouncements,
@@ -33,6 +33,7 @@ import {
   deleteGrade,
   useStudentBills,
   useStudentDetails,
+  useAllStudentGrades,
 } from "./dataHooks";
 
 const SCHOOL = "Young Executive School Complex";
@@ -232,6 +233,37 @@ function PersonalDetailsView({ profile }) {
   );
 }
 
+const TERM_ORDER = ["1st Term", "2nd Term", "3rd Term"];
+
+function TermGradesView({ studentId }) {
+  const { data, loading, error } = useAllStudentGrades(studentId);
+  if (loading) return <Loading label="grades" />;
+  if (error) return <ErrorNote message={error} />;
+  if (!data?.length) return <p className="text-sm text-[#6B7280]">No grades posted yet.</p>;
+
+  const byTerm = TERM_ORDER.map((term) => ({ term, rows: data.filter((g) => g.term === term) })).filter(
+    (t) => t.rows.length > 0
+  );
+
+  return (
+    <div className="space-y-4">
+      {byTerm.map(({ term, rows }) => (
+        <div key={term}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{term}</p>
+          <ul className="text-sm divide-y divide-[#EDEEF5]">
+            {rows.map((g) => (
+              <li key={g.id} className="py-2 flex justify-between">
+                <span className="text-[#1F2937]">{g.subject}</span>
+                <span className="font-semibold text-[#0B6B2B]">{g.grade}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StudentView({ profile, activeSection }) {
   const { enrollments, assignments, grades } = useStudentData(profile.id);
 
@@ -287,22 +319,7 @@ function StudentView({ profile, activeSection }) {
 
       {activeSection === "grades" && (
         <Ledger id="grades" title="Grades" icon={BarChart3}>
-          {grades.loading ? (
-            <Loading label="grades" />
-          ) : grades.error ? (
-            <ErrorNote message={grades.error} />
-          ) : !grades.data?.length ? (
-            <p className="text-sm text-[#6B7280]">No grades posted yet.</p>
-          ) : (
-            <ul className="text-sm divide-y divide-[#EDEEF5]">
-              {grades.data.map((g, i) => (
-                <li key={i} className="py-2 flex justify-between">
-                  <span className="text-[#1F2937]">{g.classes?.name}</span>
-                  <span className="font-semibold text-[#DC2626]">{g.grade}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <TermGradesView studentId={profile.id} />
         </Ledger>
       )}
 
@@ -496,6 +513,7 @@ function AdminView({ tab, setTab }) {
         </button>
         <div className="space-y-5">
           <PersonalDetailsPanel initialStudentId={focusStudentId} />
+          <TermGradesPanel initialStudentId={focusStudentId} />
           <FeesPanel initialStudentId={focusStudentId} />
         </div>
       </div>
