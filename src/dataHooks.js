@@ -384,7 +384,7 @@ export function useAllStudentGrades(studentId) {
     () =>
       supabase
         .from("subject_grades")
-        .select("id, term, subject, grade, academic_year")
+        .select("id, term, subject, grade, class_name, academic_year")
         .eq("student_id", studentId)
         .order("term")
         .order("subject"),

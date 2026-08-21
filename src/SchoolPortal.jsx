@@ -246,6 +246,33 @@ function TermGradesView({ studentId }) {
     rows: data.filter((g) => g.class_name === c),
   })).filter((c) => c.rows.length > 0);
 
+  // Safety net: if grouping by class somehow finds no matches (e.g. a grade
+  // was saved before a class name existed on it), still show everything
+  // rather than silently displaying nothing.
+  if (!byClass.length) {
+    return (
+      <div className="space-y-3">
+        {TERM_ORDER.map((term) => {
+          const termRows = data.filter((g) => g.term === term);
+          if (!termRows.length) return null;
+          return (
+            <div key={term}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{term}</p>
+              <ul className="text-sm divide-y divide-[#EDEEF5]">
+                {termRows.map((g) => (
+                  <li key={g.id} className="py-2 flex justify-between">
+                    <span className="text-[#1F2937]">{g.subject}</span>
+                    <span className="font-semibold text-[#0B6B2B]">{g.grade}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {byClass.map(({ className, rows }) => (
