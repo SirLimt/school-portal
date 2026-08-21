@@ -365,16 +365,17 @@ export async function deleteClassSubject(id) {
   return supabase.from("class_subjects").delete().eq("id", id);
 }
 
-export function useStudentTermGrades(studentId, term) {
+export function useStudentTermGrades(studentId, term, className) {
   return useQuery(
     () =>
       supabase
         .from("subject_grades")
-        .select("id, subject, grade, academic_year, updated_at")
+        .select("id, subject, grade, class_name, academic_year, updated_at")
         .eq("student_id", studentId)
         .eq("term", term)
+        .eq("class_name", className)
         .order("subject"),
-    [studentId, term]
+    [studentId, term, className]
   );
 }
 
@@ -402,7 +403,7 @@ export async function saveSubjectGrade({ studentId, className, term, subject, gr
       academic_year: academicYear || "",
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "student_id,term,subject,academic_year" }
+    { onConflict: "student_id,class_name,term,subject" }
   );
 }
 

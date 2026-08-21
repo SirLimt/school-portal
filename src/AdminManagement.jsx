@@ -42,6 +42,7 @@ import {
   renameClassSubject,
   deleteClassSubject,
   useStudentTermGrades,
+  useAllStudentGrades,
   saveSubjectGrade,
   deleteSubjectGrade,
 } from "./dataHooks";
@@ -549,9 +550,11 @@ export function TermGradesPanel({ initialStudentId }) {
   const details = useStudentDetails(studentId || null);
   const className = details.data?.class;
   const subjects = useClassSubjects(className || null);
-  const grades = useStudentTermGrades(studentId || null, term);
+  const grades = useStudentTermGrades(studentId || null, term, className || null);
+  const history = useAllStudentGrades(studentId || null);
   const [inputs, setInputs] = useState({});
   const [status, setStatus] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (initialStudentId) setStudentId(initialStudentId);
@@ -564,13 +567,28 @@ export function TermGradesPanel({ initialStudentId }) {
     if (!value) return;
     const { error } = await saveSubjectGrade({ studentId, className, term, subject, grade: value });
     setStatus(error ? { ok: false, message: error.message } : { ok: true, message: "Saved." });
-    if (!error) grades.refetch();
+    if (!error) {
+      grades.refetch();
+      history.refetch();
+    }
   };
 
   const remove = async (id) => {
     const { error } = await deleteSubjectGrade(id);
-    if (!error) grades.refetch();
+    if (!error) {
+      grades.refetch();
+      history.refetch();
+    }
   };
+
+  // Group every grade this student has ever earned by the class they were
+  // in at the time, in class-list order, so a promotion never hides or
+  // overwrites what came before — it's all still here, just organized by
+  // which class it belongs to.
+  const historyByClass = CLASS_LIST.map((c) => ({
+    className: c,
+    rows: (history.data ?? []).filter((g) => g.class_name === c),
+  })).filter((c) => c.rows.length > 0);
 
   return (
     <Panel title="Term Grades" icon={ListChecks}>
@@ -598,6 +616,7 @@ export function TermGradesPanel({ initialStudentId }) {
             </p>
           ) : (
             <div className="mt-3 pt-3 border-t border-[#EDEEF5] space-y-2">
+              <p className="text-xs text-[#6B7280]">Entering grades for their current class — {className}</p>
               <StatusLine status={status} />
               {subjects.data.map((s) => {
                 const existing = gradeFor(s.subject);
@@ -623,6 +642,42 @@ export function TermGradesPanel({ initialStudentId }) {
               })}
             </div>
           )}
+
+          <div className="mt-4 pt-3 border-t border-[#EDEEF5]">
+            <button onClick={() => setShowHistory((s) => !s)} className="text-xs text-[#6B7280] hover:text-[#0B6B2B] underline">
+              {showHistory ? "Hide" : "Show"} full academic history (all classes, all terms)
+            </button>
+            {showHistory && (
+              <div className="mt-3 space-y-3">
+                {!historyByClass.length ? (
+                  <p className="text-sm text-[#6B7280]">No grades recorded for this student yet.</p>
+                ) : (
+                  historyByClass.map(({ className: c, rows }) => (
+                    <div key={c}>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{c}</p>
+                      {TERMS.map((t) => {
+                        const termRows = rows.filter((r) => r.term === t);
+                        if (!termRows.length) return null;
+                        return (
+                          <div key={t} className="mb-2">
+                            <p className="text-xs text-[#6B7280] mb-0.5">{t}</p>
+                            <ul className="text-sm divide-y divide-[#EDEEF5]">
+                              {termRows.map((r) => (
+                                <li key={r.id} className="py-1 flex justify-between">
+                                  <span className="text-[#1F2937]">{r.subject}</span>
+                                  <span className="font-medium text-[#0B6B2B]">{r.grade}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </>
       )}
     </Panel>

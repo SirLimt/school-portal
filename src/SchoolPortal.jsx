@@ -241,23 +241,35 @@ function TermGradesView({ studentId }) {
   if (error) return <ErrorNote message={error} />;
   if (!data?.length) return <p className="text-sm text-[#6B7280]">No grades posted yet.</p>;
 
-  const byTerm = TERM_ORDER.map((term) => ({ term, rows: data.filter((g) => g.term === term) })).filter(
-    (t) => t.rows.length > 0
-  );
+  const byClass = CLASS_LIST.map((c) => ({
+    className: c,
+    rows: data.filter((g) => g.class_name === c),
+  })).filter((c) => c.rows.length > 0);
 
   return (
-    <div className="space-y-4">
-      {byTerm.map(({ term, rows }) => (
-        <div key={term}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{term}</p>
-          <ul className="text-sm divide-y divide-[#EDEEF5]">
-            {rows.map((g) => (
-              <li key={g.id} className="py-2 flex justify-between">
-                <span className="text-[#1F2937]">{g.subject}</span>
-                <span className="font-semibold text-[#0B6B2B]">{g.grade}</span>
-              </li>
-            ))}
-          </ul>
+    <div className="space-y-5">
+      {byClass.map(({ className, rows }) => (
+        <div key={className}>
+          <p className="text-sm font-semibold text-[#1F2937] mb-2">{className}</p>
+          <div className="space-y-3 pl-1">
+            {TERM_ORDER.map((term) => {
+              const termRows = rows.filter((g) => g.term === term);
+              if (!termRows.length) return null;
+              return (
+                <div key={term}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{term}</p>
+                  <ul className="text-sm divide-y divide-[#EDEEF5]">
+                    {termRows.map((g) => (
+                      <li key={g.id} className="py-2 flex justify-between">
+                        <span className="text-[#1F2937]">{g.subject}</span>
+                        <span className="font-semibold text-[#0B6B2B]">{g.grade}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ))}
     </div>
