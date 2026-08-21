@@ -105,11 +105,62 @@ export async function recordAttendance(classId, studentId, present) {
     );
 }
 
+function useCount(fn, deps) {
+  const [count, setCount] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const run = async () => {
+    setLoading(true);
+    const { count, error } = await fn();
+    if (error) setError(error.message);
+    setCount(count ?? 0);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  useEffect(() => {
+    const onFocus = () => run();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return { count, loading, error, refetch: run };
+}
+
 export function useAdminStats() {
-  const students = useQuery(() => supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student"), []);
-  const staff = useQuery(() => supabase.from("profiles").select("id", { count: "exact", head: true }).in("role", ["teacher", "admin"]), []);
+  const students = useCount(() => supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student"), []);
+  const staff = useCount(() => supabase.from("profiles").select("id", { count: "exact", head: true }).in("role", ["teacher", "admin"]), []);
   const staffDirectory = useQuery(() => supabase.from("profiles").select("full_name, role").in("role", ["teacher", "admin"]), []);
   return { students, staff, staffDirectory };
+}
+
+export function useGenderCounts() {
+  return useQuery(() => supabase.from("student_details").select("gender"), []);
+}
+
+export function useProfile(id) {
+  return useQuery(
+    () => supabase.from("profiles").select("id, full_name, reg_number, role, photo_url").eq("id", id).maybeSingle(),
+    [id]
+  );
+}
+
+export async function uploadPhotoId(userId, file) {
+  const ext = file.name.split(".").pop();
+  const path = `${userId}/photo.${ext}`;
+  const uploaded = await supabase.storage.from("photo-ids").upload(path, file, { upsert: true });
+  if (uploaded.error) return uploaded;
+  const { data } = supabase.storage.from("photo-ids").getPublicUrl(path);
+  // Cache-bust so a re-uploaded photo shows immediately instead of an old
+  // cached image at the same URL.
+  const url = `${data.publicUrl}?t=${Date.now()}`;
+  return supabase.from("profiles").update({ photo_url: url }).eq("id", userId);
 }
 
 export function useParentChildren(parentId) {

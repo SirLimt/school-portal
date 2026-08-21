@@ -34,6 +34,10 @@ import {
   useStudentBills,
   useStudentDetails,
   useAllStudentGrades,
+  useGenderCounts,
+  useProfilesByRole,
+  useProfile,
+  uploadPhotoId,
 } from "./dataHooks";
 
 const SCHOOL = "Young Executive School Complex";
@@ -250,70 +254,173 @@ function PersonalDetailsView({ profile }) {
 
 const TERM_ORDER = ["1st Term", "2nd Term", "3rd Term"];
 
-function TermGradesView({ studentId }) {
+function TermGradesView({ studentId, profile }) {
   const { data, loading, error } = useAllStudentGrades(studentId);
+  const details = useStudentDetails(studentId);
+  const today = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+
   if (loading) return <Loading label="grades" />;
   if (error) return <ErrorNote message={error} />;
-  if (!data?.length) return <p className="text-sm text-[#6B7280]">No grades posted yet.</p>;
 
   const byClass = CLASS_LIST.map((c) => ({
     className: c,
-    rows: data.filter((g) => g.class_name === c),
+    rows: (data ?? []).filter((g) => g.class_name === c),
   })).filter((c) => c.rows.length > 0);
 
   // Safety net: if grouping by class somehow finds no matches (e.g. a grade
-  // was saved before a class name existed on it), still show everything
-  // rather than silently displaying nothing.
-  if (!byClass.length) {
-    return (
-      <div className="space-y-3">
-        {TERM_ORDER.map((term) => {
-          const termRows = data.filter((g) => g.term === term);
-          if (!termRows.length) return null;
-          return (
-            <div key={term}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{term}</p>
-              <ul className="text-sm divide-y divide-[#EDEEF5]">
-                {termRows.map((g) => (
-                  <li key={g.id} className="py-2 flex justify-between">
-                    <span className="text-[#1F2937]">{g.subject}</span>
-                    <span className="font-semibold text-[#0B6B2B]">{g.grade}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
+  // was saved before a class name existed on it), fall back to a flat
+  // by-term listing rather than silently showing nothing.
+  const fallbackGroups =
+    byClass.length || !data?.length
+      ? null
+      : TERM_ORDER.map((term) => ({ label: term, rows: data.filter((g) => g.term === term) })).filter(
+          (t) => t.rows.length > 0
+        );
 
   return (
-    <div className="space-y-5">
-      {byClass.map(({ className, rows }) => (
-        <div key={className}>
-          <p className="text-sm font-semibold text-[#1F2937] mb-2">{className}</p>
-          <div className="space-y-3 pl-1">
-            {TERM_ORDER.map((term) => {
-              const termRows = rows.filter((g) => g.term === term);
-              if (!termRows.length) return null;
-              return (
-                <div key={term}>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-1">{term}</p>
-                  <ul className="text-sm divide-y divide-[#EDEEF5]">
-                    {termRows.map((g) => (
-                      <li key={g.id} className="py-2 flex justify-between">
-                        <span className="text-[#1F2937]">{g.subject}</span>
-                        <span className="font-semibold text-[#0B6B2B]">{g.grade}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
+    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0">
+      <div className="bg-[#0B6B2B] px-6 py-5 text-center text-white">
+        <img src={crest} alt={`${SCHOOL} crest`} className="mx-auto h-12 w-12 rounded-full object-cover mb-2" />
+        <p className="text-lg font-semibold leading-tight">{SCHOOL.toUpperCase()}</p>
+        <p className="text-xs text-[#D9F2E1] mt-0.5">Directorate of Academics</p>
+        <p className="text-xs text-[#D9F2E1]">Academic Report</p>
+      </div>
+
+      <div className="p-6">
+        <p className="text-center font-semibold text-[#1F2937] tracking-wide">STUDENT ACADEMIC REPORT</p>
+        <p className="text-center text-xs text-[#6B7280] mb-5">As of {today}</p>
+
+        <div className="grid grid-cols-2 gap-y-1 text-sm mb-5">
+          <p className="text-[#6B7280]">Student ID / Reg. Number:</p>
+          <p className="text-[#1F2937] font-medium">{profile?.reg_number ?? "—"}</p>
+          <p className="text-[#6B7280]">Student Name:</p>
+          <p className="text-[#1F2937] font-medium">{profile?.full_name ?? "—"}</p>
+          <p className="text-[#6B7280]">Current Class:</p>
+          <p className="text-[#1F2937] font-medium">{details.data?.class || "—"}</p>
         </div>
-      ))}
+
+        {!data?.length ? (
+          <p className="text-sm text-[#6B7280]">No grades posted yet.</p>
+        ) : (
+          <>
+            {(byClass.length ? byClass : []).map(({ className, rows }) => (
+              <div key={className} className="mb-5">
+                <p className="text-sm font-semibold text-[#0B6B2B] mb-1.5">{className}</p>
+                {TERM_ORDER.map((term) => {
+                  const termRows = rows.filter((g) => g.term === term);
+                  if (!termRows.length) return null;
+                  return (
+                    <table key={term} className="w-full text-sm border border-[#D1D5DB] rounded-md overflow-hidden mb-2">
+                      <thead>
+                        <tr className="bg-[#F3F4F6] text-left text-[#374151]">
+                          <th className="px-3 py-1.5 font-medium" colSpan={2}>{term}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {termRows.map((g) => (
+                          <tr key={g.id} className="border-t border-[#EDEEF5]">
+                            <td className="px-3 py-1.5 text-[#1F2937]">{g.subject}</td>
+                            <td className="px-3 py-1.5 text-right font-medium text-[#0B6B2B]">{g.grade}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })}
+              </div>
+            ))}
+
+            {fallbackGroups?.map(({ label, rows }) => (
+              <table key={label} className="w-full text-sm border border-[#D1D5DB] rounded-md overflow-hidden mb-2">
+                <thead>
+                  <tr className="bg-[#F3F4F6] text-left text-[#374151]">
+                    <th className="px-3 py-1.5 font-medium" colSpan={2}>{label}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((g) => (
+                    <tr key={g.id} className="border-t border-[#EDEEF5]">
+                      <td className="px-3 py-1.5 text-[#1F2937]">{g.subject}</td>
+                      <td className="px-3 py-1.5 text-right font-medium text-[#0B6B2B]">{g.grade}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ))}
+
+            <button
+              onClick={() => window.print()}
+              className="mt-3 text-sm bg-[#0B6B2B] text-white px-4 py-2 rounded-md hover:bg-[#084F20] print:hidden"
+            >
+              Print Report
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PrintableStatements({ studentId }) {
+  const { data: profile } = useProfile(studentId);
+  const [open, setOpen] = useState(null);
+
+  if (!profile) return null;
+
+  const options = [
+    { key: "info", label: "Personal Information Sheet" },
+    { key: "grades", label: "Academic Report" },
+    { key: "fees", label: "Fee Statement" },
+  ];
+
+  return (
+    <div className="bg-white border border-[#EDEEF5] rounded-xl shadow-sm p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#0B6B2B] mb-3">Printable Statements</p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {options.map((o) => (
+          <button
+            key={o.key}
+            onClick={() => setOpen(open === o.key ? null : o.key)}
+            className={`text-xs px-3 py-1.5 rounded-full border ${
+              open === o.key ? "bg-[#0B6B2B] text-white border-[#0B6B2B]" : "border-[#0B6B2B] text-[#0B6B2B] hover:bg-[#F1FBF3]"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {open === "info" && <PersonalInfoStatement profile={profile} />}
+      {open === "grades" && <TermGradesView studentId={studentId} profile={profile} />}
+      {open === "fees" && <FeesLedger studentId={studentId} profile={profile} />}
+    </div>
+  );
+}
+
+function PersonalInfoStatement({ profile }) {
+  const { data, loading, error } = useStudentDetails(profile?.id);
+  const today = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  if (loading) return <Loading label="personal details" />;
+  if (error) return <ErrorNote message={error} />;
+
+  return (
+    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0">
+      <div className="bg-[#0B6B2B] px-6 py-5 text-center text-white">
+        <img src={crest} alt={`${SCHOOL} crest`} className="mx-auto h-12 w-12 rounded-full object-cover mb-2" />
+        <p className="text-lg font-semibold leading-tight">{SCHOOL.toUpperCase()}</p>
+        <p className="text-xs text-[#D9F2E1] mt-0.5">Directorate of Administration</p>
+        <p className="text-xs text-[#D9F2E1]">Student Information Sheet</p>
+      </div>
+      <div className="p-6">
+        <p className="text-center font-semibold text-[#1F2937] tracking-wide">STUDENT PERSONAL INFORMATION</p>
+        <p className="text-center text-xs text-[#6B7280] mb-5">As of {today}</p>
+        <PersonalDetailsView profile={profile} />
+        <button
+          onClick={() => window.print()}
+          className="mt-5 text-sm bg-[#0B6B2B] text-white px-4 py-2 rounded-md hover:bg-[#084F20] print:hidden"
+        >
+          Print Information Sheet
+        </button>
+      </div>
     </div>
   );
 }
@@ -373,7 +480,7 @@ function StudentView({ profile, activeSection }) {
 
       {activeSection === "grades" && (
         <Ledger id="grades" title="Grades" icon={BarChart3} accent="indigo">
-          <TermGradesView studentId={profile.id} />
+          <TermGradesView studentId={profile.id} profile={profile} />
         </Ledger>
       )}
 
@@ -544,6 +651,127 @@ function TeacherView({ profile, activeSection }) {
   );
 }
 
+function LiveCalendar() {
+  const [now, setNow] = useState(new Date());
+
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000 * 30);
+    return () => clearInterval(t);
+  }, []);
+
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = now.toLocaleDateString(undefined, { month: "long" });
+  const weekday = now.toLocaleDateString(undefined, { weekday: "long" });
+  const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-3">
+        <div>
+          <p className="text-sm font-semibold text-[#1F2937]">{monthName} {year}</p>
+          <p className="text-xs text-[#6B7280]">{weekday}</p>
+        </div>
+        <p className="text-lg font-semibold text-[#0B6B2B] tabular-nums">{timeStr}</p>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <span key={i} className="text-[10px] text-[#6B7280] font-medium">{d}</span>
+        ))}
+        {cells.map((d, i) =>
+          d === null ? (
+            <span key={i} />
+          ) : (
+            <span
+              key={i}
+              className={`text-xs rounded-full h-6 w-6 flex items-center justify-center mx-auto ${
+                d === today ? "bg-[#0B6B2B] text-white font-semibold" : "text-[#374151]"
+              }`}
+            >
+              {d}
+            </span>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GenderBreakdown() {
+  const { data, loading, error } = useGenderCounts();
+  if (loading) return <p className="text-sm text-[#6B7280]">Loading…</p>;
+  if (error) return <ErrorNote message={error} />;
+  const male = (data ?? []).filter((r) => r.gender === "Male").length;
+  const female = (data ?? []).filter((r) => r.gender === "Female").length;
+  const unset = (data ?? []).length - male - female;
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="rounded-lg p-4" style={{ background: "linear-gradient(135deg, #EAF1FF, #F5FAF6)" }}>
+        <p className="text-2xl font-semibold text-[#1D4ED8]">{male}</p>
+        <p className="text-xs text-[#6B7280] mt-0.5">Male students</p>
+      </div>
+      <div className="rounded-lg p-4" style={{ background: "linear-gradient(135deg, #FFEEF1, #F5FAF6)" }}>
+        <p className="text-2xl font-semibold text-[#BE123C]">{female}</p>
+        <p className="text-xs text-[#6B7280] mt-0.5">Female students</p>
+      </div>
+      {unset > 0 && <p className="col-span-2 text-xs text-[#6B7280]">{unset} student{unset === 1 ? "" : "s"} with gender not set yet.</p>}
+    </div>
+  );
+}
+
+function AdminSearch({ onSelect }) {
+  const students = useProfilesByRole("student");
+  const [query, setQuery] = useState("");
+
+  const matches =
+    query.trim().length < 1
+      ? []
+      : (students.data ?? [])
+          .filter(
+            (s) =>
+              s.full_name?.toLowerCase().includes(query.toLowerCase()) ||
+              s.reg_number?.toLowerCase().includes(query.toLowerCase())
+          )
+          .slice(0, 8);
+
+  return (
+    <div className="relative mb-5 max-w-md">
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search students by name or registration number…"
+        className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[#EDEEF5] bg-white text-sm text-[#1F2937] placeholder:text-gray-400 shadow-sm"
+      />
+      {matches.length > 0 && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-[#EDEEF5] rounded-lg shadow-lg overflow-hidden">
+          {matches.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => {
+                onSelect(s.id);
+                setQuery("");
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-[#F1FBF3] flex justify-between"
+            >
+              <span className="text-[#1F2937]">{s.full_name}</span>
+              <span className="text-[#6B7280] text-xs font-mono">{s.reg_number}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminView({ tab, setTab }) {
   const { students, staff, staffDirectory } = useAdminStats();
   const [focusStudentId, setFocusStudentId] = useState(null);
@@ -569,6 +797,31 @@ function AdminView({ tab, setTab }) {
           <PersonalDetailsPanel initialStudentId={focusStudentId} />
           <TermGradesPanel initialStudentId={focusStudentId} />
           <FeesPanel initialStudentId={focusStudentId} />
+          <PrintableStatements studentId={focusStudentId} />
+        </div>
+      </div>
+    );
+  }
+
+  if (tab === "class-management") {
+    return (
+      <div>
+        <AdminSearch onSelect={openStudentEdit} />
+        <h2 className="text-lg font-semibold text-[#0B6B2B] mb-4">Class Management</h2>
+        <p className="text-sm text-[#6B7280] mb-4">Pick a class to view and manage its students.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {CLASS_LIST.map((c) => (
+            <button
+              key={c}
+              onClick={() => setTab(c)}
+              className="text-left bg-white border border-[#EDEEF5] rounded-xl shadow-sm p-4 hover:border-[#0B6B2B] hover:shadow-md transition"
+            >
+              <span className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#E7F5EB] mb-2">
+                <Users size={15} className="text-[#0B6B2B]" />
+              </span>
+              <p className="text-sm font-medium text-[#1F2937]">{c}</p>
+            </button>
+          ))}
         </div>
       </div>
     );
@@ -576,17 +829,28 @@ function AdminView({ tab, setTab }) {
 
   if (CLASS_LIST.includes(tab)) {
     return (
-      <ClassRosterView
-        className={tab}
-        onEditPersonalDetails={openStudentEdit}
-        onEditFees={openStudentEdit}
-      />
+      <div>
+        <AdminSearch onSelect={openStudentEdit} />
+        <button
+          onClick={() => setTab("class-management")}
+          className="flex items-center gap-1 text-sm text-[#6B7280] hover:text-[#0B6B2B] mb-4"
+        >
+          <ChevronLeft size={16} />
+          Back to Class Management
+        </button>
+        <ClassRosterView
+          className={tab}
+          onEditPersonalDetails={openStudentEdit}
+          onEditFees={openStudentEdit}
+        />
+      </div>
     );
   }
 
   if (tab === "grant-admin") {
     return (
       <div className="max-w-2xl">
+        <AdminSearch onSelect={openStudentEdit} />
         <GrantAdminPanel />
       </div>
     );
@@ -595,6 +859,7 @@ function AdminView({ tab, setTab }) {
   if (tab === "current-admins") {
     return (
       <div className="max-w-2xl">
+        <AdminSearch onSelect={openStudentEdit} />
         <ManageAdminsPanel />
       </div>
     );
@@ -602,6 +867,7 @@ function AdminView({ tab, setTab }) {
 
   return (
     <div>
+      <AdminSearch onSelect={openStudentEdit} />
       {tab === "manage" ? (
         <AdminManagement />
       ) : (
@@ -613,7 +879,7 @@ function AdminView({ tab, setTab }) {
                   <GraduationCap size={16} className="text-[#0B6B2B]" />
                 </span>
                 <p className="text-2xl font-semibold text-[#0B6B2B]">
-                  {students.loading ? "…" : students.data ?? 0}
+                  {students.loading ? "…" : students.count ?? 0}
                 </p>
                 <p className="text-xs text-[#6B7280] mt-0.5">Enrolled students</p>
               </div>
@@ -622,11 +888,19 @@ function AdminView({ tab, setTab }) {
                   <Users size={16} className="text-[#1D4ED8]" />
                 </span>
                 <p className="text-2xl font-semibold text-[#1D4ED8]">
-                  {staff.loading ? "…" : staff.data ?? 0}
+                  {staff.loading ? "…" : staff.count ?? 0}
                 </p>
                 <p className="text-xs text-[#6B7280] mt-0.5">Staff on record</p>
               </div>
             </div>
+          </Ledger>
+
+          <Ledger title="Students by Gender" icon={Users} accent="indigo">
+            <GenderBreakdown />
+          </Ledger>
+
+          <Ledger title="Calendar" icon={CalendarDays} accent="gold">
+            <LiveCalendar />
           </Ledger>
 
           <Ledger id="directory" title="Staff Directory" icon={Users} accent="blue">
@@ -654,6 +928,7 @@ function AdminView({ tab, setTab }) {
     </div>
   );
 }
+
 
 function ParentView({ profile, activeSection }) {
   const { data, loading, error } = useParentChildren(profile.id);
@@ -696,9 +971,48 @@ function ParentView({ profile, activeSection }) {
   );
 }
 
+function PhotoIdUpload({ profile }) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setStatus(null);
+    const { error } = await uploadPhotoId(profile.id, file);
+    setBusy(false);
+    setStatus(
+      error ? { ok: false, message: error.message } : { ok: true, message: "Photo uploaded — refresh to see it above." }
+    );
+  };
+
+  return (
+    <Ledger id="photo-id" title="Photo ID" icon={Contact} accent="teal">
+      <div className="flex items-center gap-4">
+        <div className="h-20 w-20 rounded-lg bg-[#F1FBF3] border border-[#EDEEF5] overflow-hidden flex items-center justify-center shrink-0">
+          {profile.photo_url ? (
+            <img src={profile.photo_url} alt="Photo ID" className="h-full w-full object-cover" />
+          ) : (
+            <UserCircle2 size={28} className="text-[#6B7280]" />
+          )}
+        </div>
+        <div>
+          <label className="text-sm inline-block px-3 py-1.5 rounded-sm border border-[#0B6B2B] text-[#0B6B2B] hover:bg-[#F1FBF3] cursor-pointer">
+            {busy ? "Uploading…" : profile.photo_url ? "Replace photo" : "Upload photo"}
+            <input type="file" accept="image/*" onChange={handleFile} disabled={busy} className="hidden" />
+          </label>
+          <StatusLine status={status} />
+          {status?.ok && <p className="text-xs text-[#6B7280] mt-1">Refresh the page to see your new photo above.</p>}
+        </div>
+      </div>
+    </Ledger>
+  );
+}
+
 function AccountView({ profile }) {
   return (
-    <div className="max-w-md">
+    <div className="max-w-md space-y-5">
       <Ledger id="account" title="Account" icon={UserCircle2}>
         <div className="space-y-3 text-sm">
           <div>
@@ -722,6 +1036,7 @@ function AccountView({ profile }) {
           </div>
         </div>
       </Ledger>
+      <PhotoIdUpload profile={profile} />
     </div>
   );
 }
@@ -746,7 +1061,7 @@ const SIDEBAR_ITEMS = {
     { id: "manage", label: "Manage" },
     { id: "grant-admin", label: "Grant Admin Access" },
     { id: "current-admins", label: "Current Admins" },
-    ...CLASS_LIST.map((name) => ({ id: name, label: name })),
+    { id: "class-management", label: "Class Management" },
   ],
   parent: [
     { id: "children", label: "Your Children" },
@@ -798,15 +1113,6 @@ function Banner({ firstName, roleLabel, items, onNavigate }) {
         <p className="text-[11px] uppercase tracking-[0.25em] text-[#D9F2C4]">{roleLabel}</p>
         <h2 className="text-2xl md:text-3xl font-semibold text-white mt-1">Hello, {firstName}.</h2>
         <p className="text-[#D9F2E1] mt-1 text-sm">Here's what's new.</p>
-
-        <div className="mt-6 max-w-xl relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            disabled
-            placeholder="Search coming soon…"
-            className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-white text-sm text-gray-500 placeholder:text-gray-400 shadow-sm"
-          />
-        </div>
 
         {items.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">

@@ -1417,6 +1417,15 @@ function DetailFieldInput({ field, value, onChange }) {
       </select>
     );
   }
+  if (field.key === "gender") {
+    return (
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <option value="">— not set —</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+    );
+  }
   return (
     <input
       type={field.type ?? "text"}
