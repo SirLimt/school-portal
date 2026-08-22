@@ -467,7 +467,7 @@ export function useStudentsByClass(className) {
     () =>
       supabase
         .from("student_details")
-        .select("student_id, first_name, surname, gender, date_of_birth, hometown, father_name, father_phone, mother_name, mother_phone, profiles(full_name, reg_number)")
+        .select("student_id, first_name, surname, gender, date_of_birth, hometown, father_name, father_phone, mother_name, mother_phone, profiles(full_name, reg_number, photo_url)")
         .eq("class", className)
         .order("surname", { ascending: true }),
     [className]

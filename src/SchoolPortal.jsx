@@ -135,7 +135,7 @@ function FeesLedger({ studentId, profile }) {
   const today = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0">
+    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0 print-target">
       <div className="bg-[#0B6B2B] px-6 py-5 text-center text-white">
         <img src={crest} alt={`${SCHOOL} crest`} className="mx-auto h-12 w-12 rounded-full object-cover mb-2" />
         <p className="text-lg font-semibold leading-tight">{SCHOOL.toUpperCase()}</p>
@@ -237,6 +237,13 @@ function PersonalDetailsView({ profile }) {
 
   return (
     <div>
+      {profile.photo_url && (
+        <img
+          src={profile.photo_url}
+          alt="Student photo"
+          className="h-24 w-24 rounded-lg object-cover border border-[#EDEEF5] mb-4"
+        />
+      )}
       <div className="grid grid-cols-2 gap-4">
         <FieldBox label="Registration Number" value={profile.reg_number} wide />
         {DETAIL_LABELS.map(([key, label, wide]) => (
@@ -278,7 +285,7 @@ function TermGradesView({ studentId, profile }) {
         );
 
   return (
-    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0">
+    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0 print-target">
       <div className="bg-[#0B6B2B] px-6 py-5 text-center text-white">
         <img src={crest} alt={`${SCHOOL} crest`} className="mx-auto h-12 w-12 rounded-full object-cover mb-2" />
         <p className="text-lg font-semibold leading-tight">{SCHOOL.toUpperCase()}</p>
@@ -403,7 +410,7 @@ function PersonalInfoStatement({ profile }) {
   if (error) return <ErrorNote message={error} />;
 
   return (
-    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0">
+    <div className="border border-[#D1D5DB] rounded-lg overflow-hidden print:border-0 print-target">
       <div className="bg-[#0B6B2B] px-6 py-5 text-center text-white">
         <img src={crest} alt={`${SCHOOL} crest`} className="mx-auto h-12 w-12 rounded-full object-cover mb-2" />
         <p className="text-lg font-semibold leading-tight">{SCHOOL.toUpperCase()}</p>
@@ -430,6 +437,17 @@ function StudentView({ profile, activeSection }) {
 
   return (
     <div className="max-w-3xl">
+      {activeSection === "overview" && (
+        <div className="grid md:grid-cols-2 gap-5">
+          <Ledger id="overview-calendar" title="Calendar" icon={CalendarDays} accent="gold">
+            <LiveCalendar />
+          </Ledger>
+          <Ledger id="overview-announcements" title="Announcements" icon={Bell} accent="blue">
+            <AnnouncementsPanel />
+          </Ledger>
+        </div>
+      )}
+
       {activeSection === "personal-details" && (
         <Ledger id="personal-details" title="Personal Details" icon={Contact} accent="teal">
           <PersonalDetailsView profile={profile} />
@@ -1043,6 +1061,7 @@ function AccountView({ profile }) {
 
 const SIDEBAR_ITEMS = {
   student: [
+    { id: "overview", label: "Overview" },
     { id: "personal-details", label: "Personal Details" },
     { id: "classes", label: "My Classes" },
     { id: "assignments", label: "Assignments" },
@@ -1177,8 +1196,12 @@ function PortalShell() {
             <p className="text-[10px] uppercase tracking-wide text-gray-400">Signed in as</p>
             <p className="text-sm font-medium text-[#0B6B2B]">{profile.full_name}</p>
           </div>
-          <div className="h-8 w-8 rounded-full bg-[#0B6B2B] text-white flex items-center justify-center text-sm font-semibold">
-            {(profile.full_name ?? "?").charAt(0).toUpperCase()}
+          <div className="h-8 w-8 rounded-full bg-[#0B6B2B] text-white flex items-center justify-center text-sm font-semibold overflow-hidden">
+            {profile.photo_url ? (
+              <img src={profile.photo_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              (profile.full_name ?? "?").charAt(0).toUpperCase()
+            )}
           </div>
           <button
             onClick={signOut}

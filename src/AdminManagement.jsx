@@ -1686,14 +1686,23 @@ function StudentClassCard({ row, onEditPersonalDetails, onEditFees }) {
   return (
     <div className="bg-white border border-[#EDEEF5] rounded-xl shadow-sm p-4">
       <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-[#1F2937]">{row.profiles?.full_name}</p>
-            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[#F1FBF3] text-[#0B6B2B] border border-[#0B6B2B]">
-              Signed up
-            </span>
+        <div className="flex items-start gap-3">
+          <div className="h-11 w-11 rounded-full bg-[#F1FBF3] border border-[#EDEEF5] overflow-hidden flex items-center justify-center shrink-0">
+            {row.profiles?.photo_url ? (
+              <img src={row.profiles.photo_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-xs text-[#6B7280]">{(row.profiles?.full_name ?? "?").charAt(0).toUpperCase()}</span>
+            )}
           </div>
-          <p className="text-xs text-[#6B7280]">Reg No: {row.profiles?.reg_number ?? "—"}</p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-[#1F2937]">{row.profiles?.full_name}</p>
+              <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-[#F1FBF3] text-[#0B6B2B] border border-[#0B6B2B]">
+                Signed up
+              </span>
+            </div>
+            <p className="text-xs text-[#6B7280]">Reg No: {row.profiles?.reg_number ?? "—"}</p>
+          </div>
         </div>
         <button onClick={() => onEditPersonalDetails(row.student_id)} className="text-xs px-2 py-1 rounded-sm border border-[#0B6B2B] text-[#0B6B2B] hover:bg-[#F1FBF3]">
           Edit details
